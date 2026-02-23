@@ -3,1757 +3,715 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Siswa & LMS Terintegrasi</title>
+    <title>Portal Ujian Online</title>
+    <!-- Tailwind CSS untuk Styling -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome untuk Ikon -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        .sidebar-transition { transition: transform 0.3s ease-in-out; }
+        /* Mencegah seleksi teks (anti-copas dasar) */
+        body {
+            user-select: none;
+            -webkit-user-select: none;
+            -ms-user-select: none;
+            background-color: #f3f4f6;
+        }
+        /* Memastikan iframe mengambil sisa tinggi layar */
+        .iframe-container {
+            height: calc(100vh - 64px); /* 64px adalah tinggi navbar */
+        }
+        /* Scrollbar kustom untuk tabel admin */
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; rounded: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        .playlist-scroll::-webkit-scrollbar { width: 6px; }
-        .playlist-scroll::-webkit-scrollbar-track { background: #f1f5f9; }
-        .playlist-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        .playlist-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        .iframe-container { position: relative; width: 100%; height: 100%; overflow: hidden; background-color: white; }
-        iframe { width: 100%; height: 100%; border: none; }
-        .nav-item.active { background-color: #2563eb; color: white; }
-        .nav-item.active i { color: white; }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: none; z-index: 10; }
-        @keyframes spin { 0% { transform: translate(-50%, -50%) rotate(0deg); } 100% { transform: translate(-50%, -50%) rotate(360deg); } }
-        .modal-overlay { background-color: rgba(0, 0, 0, 0.5); backdrop-filter: blur(2px); }
-        .tab-btn.active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: 600; background-color: #eff6ff; }
-        .tab-btn { color: #6b7280; font-weight: 500; transition: all 0.2s; }
-        .tab-btn:hover { background-color: #f9fafb; }
-        .playlist-item { transition: all 0.2s; border-left: 3px solid transparent; }
-        .playlist-item:hover { background-color: #f8fafc; }
-        .playlist-item.active { background-color: #eff6ff; border-left-color: #2563eb; }
-        .playlist-item.active .title { color: #1d4ed8; font-weight: 600; }
-        .playlist-item.active .icon-play { opacity: 1; }
-        .animate-fade-in { animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        /* Task Styles */
-        .task-item.completed .task-title { text-decoration: line-through; color: #9ca3af; }
-        .task-item { transition: all 0.2s ease; }
-        .task-item:hover { transform: translateY(-2px); }
-        
-        /* Calculator Styles */
-        .calc-btn { transition: all 0.1s; }
-        .calc-btn:active { transform: scale(0.95); }
     </style>
 </head>
-<body class="bg-gray-100 h-screen overflow-hidden flex text-gray-800">
+<body class="text-gray-800 antialiased font-sans">
 
-    <!-- Loading Screen -->
-    <div id="app-loading" class="fixed inset-0 z-[60] bg-white flex flex-col items-center justify-center">
-        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600 mb-4"></div>
-        <p class="text-gray-600 font-medium">Loading...</p>
-    </div>
-
-    <!-- Mobile Overlay -->
-    <div id="mobile-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black opacity-50 z-20 hidden lg:hidden"></div>
-
-    <!-- Calculator Modal (Floating) -->
-    <div id="calculator-modal" class="fixed bottom-20 right-4 z-50 hidden animate-fade-in">
-        <div class="bg-slate-900 p-4 rounded-2xl shadow-2xl w-64 border border-slate-700">
-            <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
-                <span class="text-white text-xs font-bold tracking-wider">KALKULATOR</span>
-                <button onclick="toggleCalculator()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <input type="text" id="calc-display" readonly class="w-full bg-slate-800 text-white text-right text-2xl p-3 rounded-lg mb-3 font-mono outline-none border border-slate-700" value="0">
-            <div class="grid grid-cols-4 gap-2">
-                <button onclick="calcClear()" class="calc-btn col-span-2 bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg font-bold">AC</button>
-                <button onclick="calcAppend('/')" class="calc-btn bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-lg font-bold">÷</button>
-                <button onclick="calcAppend('*')" class="calc-btn bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-lg font-bold">×</button>
-                
-                <button onclick="calcAppend('7')" class="calc-btn bg-slate-800 hover:bg-slate-700 text-white p-2 rounded-lg font-bold">7</button>
-                <button onclick="calcAppend('8')" class="calc-btn bg-slate-800 hover:bg-slate-700 text-white p-2 rounded-lg font-bold">8</button>
-                <button onclick="calcAppend('9')" class="calc-btn bg-slate-800 hover:bg-slate-700 text-white p-2 rounded-lg font-bold">9</button>
-                <button onclick="calcAppend('-')" class="calc-btn bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-lg font-bold">-</button>
-                
-                <button onclick="calcAppend('4')" class="calc-btn bg-slate-800 hover:bg-slate-700 text-white p-2 rounded-lg font-bold">4</button>
-                <button onclick="calcAppend('5')" class="calc-btn bg-slate-800 hover:bg-slate-700 text-white p-2 rounded-lg font-bold">5</button>
-                <button onclick="calcAppend('6')" class="calc-btn bg-slate-800 hover:bg-slate-700 text-white p-2 rounded-lg font-bold">6</button>
-                <button onclick="calcAppend('+')" class="calc-btn bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-lg font-bold">+</button>
-                
-                <button onclick="calcAppend('1')" class="calc-btn bg-slate-800 hover:bg-slate-700 text-white p-2 rounded-lg font-bold">1</button>
-                <button onclick="calcAppend('2')" class="calc-btn bg-slate-800 hover:bg-slate-700 text-white p-2 rounded-lg font-bold">2</button>
-                <button onclick="calcAppend('3')" class="calc-btn bg-slate-800 hover:bg-slate-700 text-white p-2 rounded-lg font-bold">3</button>
-                <button onclick="calcResult()" class="calc-btn row-span-2 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg font-bold">=</button>
-                
-                <button onclick="calcAppend('0')" class="calc-btn col-span-2 bg-slate-800 hover:bg-slate-700 text-white p-2 rounded-lg font-bold">0</button>
-                <button onclick="calcAppend('.')" class="calc-btn bg-slate-800 hover:bg-slate-700 text-white p-2 rounded-lg font-bold">.</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Password Modal -->
-    <div id="password-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center modal-overlay">
-        <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm mx-4 animate-fade-in">
-            <div class="text-center mb-6">
-                <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600">
-                    <i class="fa-solid fa-lock text-2xl"></i>
-                </div>
-                <h3 class="text-xl font-bold text-gray-800">Akses Terbatas</h3>
-                <p class="text-sm text-gray-500 mt-1">Masukkan password admin/guru.</p>
-            </div>
-            <form onsubmit="verifyPassword(event)">
-                <input type="hidden" id="auth-target" value="settings">
-                <div class="mb-4">
-                    <input type="password" id="admin-password" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none text-center tracking-widest text-lg" placeholder="••••••" required>
-                </div>
-                <div class="flex gap-3">
-                    <button type="button" onclick="closePasswordModal()" class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Batal</button>
-                    <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-lg shadow-blue-500/30">Masuk</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Rename Modal -->
-    <div id="rename-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center modal-overlay">
-        <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm mx-4 animate-fade-in">
-            <h3 class="text-lg font-bold text-gray-800 mb-4">Ubah Nama File</h3>
-            <form onsubmit="handleRenameFile(event)">
-                <input type="hidden" id="rename-file-id">
-                <div class="mb-4">
-                    <input type="text" id="rename-file-name" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" required>
-                    <p class="text-xs text-gray-500 mt-1">*Ekstensi .pdf akan ditambahkan otomatis</p>
-                </div>
-                <div class="flex gap-3">
-                    <button type="button" onclick="closeRenameModal()" class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg">Batal</button>
-                    <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Simpan</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- PDF Viewer Modal -->
-    <div id="pdf-viewer-modal" class="hidden fixed inset-0 z-50 overflow-hidden">
-        <div class="absolute inset-0 bg-slate-900 bg-opacity-90 backdrop-blur-sm" onclick="closePreview()"></div>
-        <div class="absolute inset-4 md:inset-10 flex flex-col bg-white rounded-xl shadow-2xl overflow-hidden animate-fade-in">
-            <div class="flex justify-between items-center p-4 border-b bg-gray-50">
-                <h3 id="preview-title" class="font-bold truncate pr-4 text-gray-700">Preview Materi</h3>
-                <button onclick="closePreview()" class="text-red-500 hover:text-red-700 bg-red-100 hover:bg-red-200 rounded-full w-8 h-8 flex items-center justify-center transition-colors">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-            <iframe id="preview-frame" class="flex-grow w-full h-full bg-slate-100"></iframe>
-        </div>
-    </div>
-
-    <!-- Sidebar -->
-    <aside id="sidebar" class="bg-slate-900 text-slate-300 w-64 flex-shrink-0 fixed inset-y-0 left-0 z-30 transform -translate-x-full lg:relative lg:translate-x-0 sidebar-transition flex flex-col h-full shadow-xl">
-        <div class="h-16 flex items-center justify-center border-b border-slate-700 bg-slate-900 shadow-sm">
-            <div class="flex items-center gap-3">
-                <div class="bg-blue-600 text-white p-1.5 rounded-lg">
-                    <i class="fa-solid fa-graduation-cap text-xl"></i>
-                </div>
-                <h1 id="sidebar-app-name" class="text-xl font-bold text-white tracking-wide">NusanCBT</h1>
-            </div>
-        </div>
-        <div class="p-4 border-b border-slate-700 bg-slate-800/50">
-            <div class="flex items-center gap-3 mb-3">
-                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="User Avatar" class="w-10 h-10 rounded-full bg-slate-600 border-2 border-slate-500">
-                <div>
-                    <p class="text-sm font-semibold text-white">Siswa Peserta</p>
-                    <p id="sidebar-app-subtitle" class="text-xs text-slate-400">Loading...</p>
-                </div>
-            </div>
-        </div>
-        <nav class="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-1">
-            <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-2 px-3">Menu Utama</div>
-            <button onclick="switchView('home')" id="btn-home" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 transition-colors active">
-                <i class="fa-solid fa-house w-5 text-center text-slate-400 transition-colors"></i>
-                <span class="text-sm font-medium">Dashboard</span>
-            </button>
-            
-            <!-- Dynamic Menu Placeholder -->
-            <div id="sidebar-dynamic-menu"></div>
-            
-            <!-- LMS MENU ITEM -->
-            <button onclick="switchView('lms')" id="btn-lms" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 transition-colors">
-                <i class="fa-solid fa-book-open w-5 text-center text-slate-400 transition-colors"></i>
-                <span class="text-sm font-medium">E-Library (LMS)</span>
-            </button>
-
-            <!-- TASKS MENU ITEM -->
-            <button onclick="switchView('tasks')" id="btn-tasks" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 transition-colors">
-                <i class="fa-solid fa-list-check w-5 text-center text-slate-400 transition-colors"></i>
-                <span class="text-sm font-medium">Agenda & Tugas</span>
-            </button>
-
-            <!-- CBT MENU ITEM (BARU DITAMBAHKAN) -->
-            <button onclick="switchView('cbt')" id="btn-cbt" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 transition-colors">
-                <i class="fa-solid fa-laptop-code w-5 text-center text-slate-400 transition-colors"></i>
-                <span class="text-sm font-medium">Ujian / CBT</span>
-            </button>
-
-            <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-6 px-3">Lainnya</div>
-            <button onclick="switchView('settings')" id="btn-settings" class="nav-item w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 transition-colors">
-                <i class="fa-solid fa-gear w-5 text-center text-slate-400 transition-colors"></i>
-                <span class="text-sm font-medium">Pengaturan Admin</span>
-            </button>     
-        </nav>
-    </aside>
-
-    <!-- Main Content -->
-    <main class="flex-1 flex flex-col h-full relative w-full">
-        <!-- Header -->
-        <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-6 shadow-sm z-10">
-            <div class="flex items-center gap-3">
-                <button onclick="toggleSidebar()" class="lg:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-md">
-                    <i class="fa-solid fa-bars text-xl"></i>
-                </button>
-                <h2 id="page-title" class="text-lg font-bold text-gray-800">Dashboard Utama</h2>
-            </div>
-            <div class="flex items-center gap-4">
-                <!-- Calculator Toggle -->
-                <button onclick="toggleCalculator()" class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-100 text-slate-600 rounded-full text-xs font-bold hover:bg-slate-200 transition">
-                    <i class="fa-solid fa-calculator"></i> Hitung
-                </button>
-
-                <div class="hidden md:flex flex-col items-end mr-2">
-                    <span id="digital-clock" class="text-sm font-mono font-bold text-blue-600">00:00:00</span>
-                    <span id="current-date" class="text-xs text-gray-500">Senin, 1 Jan 2024</span>
-                </div>
-                <button onclick="toggleFullscreen()" class="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full" title="Layar Penuh"><i id="fullscreen-icon" class="fa-solid fa-expand"></i></button>
-            </div>
-        </header>
-
-        <!-- RUNNING TEXT / MARQUEE -->
-        <div id="marquee-container" class="bg-blue-600 text-white text-sm py-1.5 overflow-hidden whitespace-nowrap hidden">
-            <div id="marquee-text" class="inline-block animate-marquee pl-[100%]">
-                <!-- Text will be injected here -->
-            </div>
-        </div>
-        <style>
-            @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
-            .animate-marquee { animation: marquee 20s linear infinite; }
-        </style>
-
-        <!-- Content Area -->
-        <div id="content-area" class="flex-1 p-0 overflow-hidden relative bg-gray-50">
-            <div id="loader" class="loader"></div>
-
-            <!-- 1. HOME VIEW -->
-            <div id="view-home" class="h-full overflow-y-auto p-4 lg:p-6 animate-fade-in custom-scrollbar">
-                
-                <!-- Welcome Banner -->
-                <div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 text-white mb-6 shadow-lg relative overflow-hidden">
-                    <div class="relative z-10">
-                        <h2 class="text-2xl font-bold mb-1">Selamat Datang.! 👋</h2>
-                        <p class="text-blue-100 text-sm mb-4">Akses materi, kerjakan tugas, dan pantau jadwal pelajaranmu hari ini.</p>
-                        <div class="flex gap-3">
-                            <button onclick="switchView('tasks')" class="px-4 py-2 bg-white text-blue-600 rounded-lg text-sm font-bold shadow-md hover:bg-blue-50 transition"><i class="fa-solid fa-list-check mr-2"></i>Cek Tugas</button>
-                            <button onclick="switchView('cbt')" class="px-4 py-2 bg-yellow-400 text-yellow-900 rounded-lg text-sm font-bold hover:bg-yellow-300 transition shadow-md"><i class="fa-solid fa-laptop-code mr-2"></i>Mulai Ujian</button>
-                        </div>
-                    </div>
-                    <div class="absolute right-0 bottom-0 opacity-10 transform translate-x-10 translate-y-10">
-                        <i class="fa-solid fa-graduation-cap text-9xl"></i>
-                    </div>
-                </div>
-
-                <div id="curfew-banner" class="hidden mb-6 bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-r shadow-sm transition-all duration-300">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0 text-yellow-500"><i class="fa-solid fa-clock text-2xl"></i></div>
-                        <div class="ml-3">
-                            <h3 class="text-sm font-bold text-yellow-800">Info Akses Menu</h3>
-                            <p class="text-sm text-yellow-700 mt-1">Beberapa menu belum dibuka atau jadwal telah berakhir.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="home-cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-6"></div>
-                
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2 flex justify-between items-center">
-                        Pengumuman Sekolah <span class="text-xs font-normal text-gray-500 bg-gray-100 px-2 py-1 rounded">Terbaru</span>
-                    </h3>
-                    <div id="announcement-list" class="space-y-4"></div>
-                </div>
-            </div>
-
-            <!-- 2. PLAYER WRAPPER -->
-            <div id="view-iframe-wrapper" class="hidden w-full h-full bg-white flex flex-col md:flex-row relative">
-                <div id="video-container" class="relative flex-1 bg-black h-[50vh] md:h-full transition-all duration-300">
-                    <iframe id="main-iframe" class="w-full h-full" src="" allowfullscreen></iframe>
-                    <button id="playlist-toggle-btn" onclick="togglePlaylist()" class="hidden absolute top-4 right-4 z-20 bg-black/70 hover:bg-blue-600 text-white px-3 py-2 rounded-md shadow-lg border border-white/20 backdrop-blur-sm transition-all text-xs flex items-center gap-2 group">
-                        <i id="playlist-toggle-icon" class="fa-solid fa-list"></i>
-                        <span class="hidden group-hover:inline font-medium">Daftar Materi</span>
-                    </button>
-                    
-                    <!-- 404 Error -->
-                    <div id="iframe-error" class="hidden absolute inset-0 flex flex-col items-center justify-center bg-white p-8 text-center z-10">
-                        <div class="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mb-6 animate-fade-in">
-                            <i id="error-icon" class="fa-solid fa-link-slash text-4xl text-red-500"></i>
-                        </div>
-                        <h3 id="error-title" class="text-2xl font-bold text-gray-800 mb-2">Halaman Tidak Ditemukan (404)</h3>
-                        <p id="error-message" class="text-gray-500 mb-8 max-w-md">URL materi atau menu yang Anda tuju tidak valid atau tidak dapat diakses.</p>
-                        
-                        <div class="flex gap-3">
-                            <button onclick="switchView('home')" class="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors">
-                                <i class="fa-solid fa-arrow-left mr-2"></i> Kembali ke Dashboard
-                            </button>
-                            <a id="external-link" href="#" target="_blank" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-lg shadow-blue-500/30">
-                                <i class="fa-solid fa-external-link-alt mr-2"></i> Buka di Tab Baru
-                            </a>
-                        </div>
-                    </div>
-
-                </div>
-                <div id="playlist-sidebar" class="hidden w-full md:w-80 h-[50vh] md:h-full bg-white border-l border-gray-200 flex flex-col shadow-xl z-10 transition-all duration-300">
-                    <div class="p-3 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-                        <h3 class="font-bold text-gray-700 text-sm flex items-center"><i class="fa-solid fa-list-ul mr-2 text-blue-600"></i> Materi Pembelajaran</h3>
-                        <div class="flex items-center gap-2"><span id="playlist-counter" class="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">0/0</span><button onclick="togglePlaylist()" class="text-gray-400 hover:text-red-500 md:hidden"><i class="fa-solid fa-xmark"></i></button></div>
-                    </div>
-                    <div id="playlist-items" class="flex-1 overflow-y-auto playlist-scroll p-0 bg-white"></div>
-                </div>
-            </div>
-
-            <!-- 3. NEW LMS VIEW (Student View) -->
-            <div id="view-lms" class="hidden h-full overflow-y-auto p-4 lg:p-6 bg-slate-50 custom-scrollbar animate-fade-in">
-                <div class="max-w-7xl mx-auto pb-10">
-                    <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                        <div>
-                            <h2 class="text-2xl font-bold text-slate-800">📚 Perpustakaan Digital</h2>
-                            <p class="text-slate-500 text-sm">Akses materi PDF dan E-Book sekolah.</p>
-                        </div>
-                    </div>
-
-                    <div id="lms-view-student" class="space-y-6">
-                        <div id="lms-filter-container" class="flex flex-wrap gap-2 mb-4">
-                            <button onclick="filterLMSMateri('Semua')" class="filter-btn px-4 py-1.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200">Semua</button>
-                        </div>
-                        <div id="lms-loading" class="hidden text-center py-10">
-                            <div class="animate-spin inline-block w-8 h-8 border-[3px] border-current border-t-transparent text-blue-600 rounded-full" role="status" aria-label="loading"></div>
-                            <p class="mt-2 text-slate-500 text-sm">Sedang memuat materi dari Google Drive...</p>
-                        </div>
-                        <div id="lms-file-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                            <!-- Populated by JS -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 4. NEW TASKS VIEW (Student Planner) -->
-            <div id="view-tasks" class="hidden h-full overflow-y-auto p-4 lg:p-6 bg-slate-50 custom-scrollbar animate-fade-in">
-                <div class="max-w-5xl mx-auto">
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <!-- Input Section -->
-                        <div class="lg:col-span-1">
-                            <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200 sticky top-4">
-                                <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-pen-to-square text-blue-600"></i> Catat Tugas Baru</h3>
-                                <form onsubmit="handleAddTask(event)">
-                                    <div class="mb-3">
-                                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Mata Pelajaran</label>
-                                        <select id="task-subject" class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none text-sm">
-                                            <option value="Umum">Umum</option>
-                                            <option value="Matematika">Matematika</option>
-                                            <option value="Bahasa Indonesia">Bahasa Indonesia</option>
-                                            <option value="Bahasa Inggris">Bahasa Inggris</option>
-                                            <option value="IPA/Sains">IPA/Sains</option>
-                                            <option value="Kejuruan">Produktif/Kejuruan</option>
-                                        </select>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Judul Tugas</label>
-                                        <input type="text" id="task-title" class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none text-sm" placeholder="Cth: PR Halaman 52" required>
-                                    </div>
-                                    <div class="mb-4">
-                                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Deadline</label>
-                                        <input type="date" id="task-date" class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none text-sm" required>
-                                    </div>
-                                    <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-lg"><i class="fa-solid fa-plus mr-1"></i> Tambah ke Agenda</button>
-                                </form>
-                                <div class="mt-6 pt-4 border-t border-gray-100">
-                                    <h4 class="text-xs font-bold text-gray-400 uppercase mb-2">Statistik Tugas</h4>
-                                    <div class="flex justify-between text-sm mb-1"><span>Selesai</span> <span id="stat-completed" class="font-bold text-green-600">0</span></div>
-                                    <div class="flex justify-between text-sm"><span>Belum Selesai</span> <span id="stat-pending" class="font-bold text-orange-500">0</span></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- List Section -->
-                        <div class="lg:col-span-2 space-y-4">
-                            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center">
-                                <h3 class="font-bold text-slate-800">Daftar Agenda & PR</h3>
-                                <button onclick="clearCompletedTasks()" class="text-xs text-red-500 hover:text-red-700 font-medium">Hapus yang selesai</button>
-                            </div>
-                            <div id="task-list-container" class="space-y-3">
-                                <!-- Tasks rendered here -->
-                                <div class="text-center py-10 text-gray-400 bg-white rounded-xl border border-dashed border-gray-300">
-                                    <i class="fa-solid fa-clipboard-check text-4xl mb-3 opacity-50"></i>
-                                    <p>Belum ada tugas dicatat.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 5. NEW CBT VIEW (BARU DITAMBAHKAN) -->
-            <div id="view-cbt" class="hidden h-full overflow-y-auto p-4 lg:p-6 bg-slate-50 custom-scrollbar animate-fade-in">
-                <div class="max-w-7xl mx-auto pb-10">
-                    <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-blue-600">
-                        <div>
-                            <h2 class="text-2xl font-bold text-slate-800">💻 Ujian & Kuis CBT</h2>
-                            <p class="text-slate-500 text-sm">Daftar evaluasi, ulangan, dan ujian online (Otomatis Embed Google Form).</p>
-                        </div>
-                        <div class="hidden md:block">
-                            <i class="fa-solid fa-laptop-code text-4xl text-blue-100"></i>
-                        </div>
-                    </div>
-                    <div id="cbt-list-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                        <!-- CBT List Populated by JS -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- 6. SETTINGS VIEW -->
-            <div id="view-settings" class="hidden h-full overflow-y-auto p-4 lg:p-6 bg-gray-50 custom-scrollbar">
-                <div class="max-w-7xl mx-auto pb-10">
-                    <div class="flex border-b border-gray-200 mb-6 bg-white rounded-t-xl px-2 pt-2 shadow-sm overflow-x-auto">
-                        <button onclick="switchSettingsTab('lms')" id="tab-btn-lms" class="tab-btn active px-6 py-3 mr-2 focus:outline-none rounded-t-lg whitespace-nowrap"><i class="fa-solid fa-graduation-cap mr-2"></i> Manajemen Dashboard</button>
-                        <button onclick="switchSettingsTab('lms-admin')" id="tab-btn-lms-admin" class="tab-btn px-6 py-3 mr-2 focus:outline-none rounded-t-lg whitespace-nowrap text-blue-600"><i class="fa-solid fa-book mr-2"></i> E-Library (Guru)</button>
-                        <button onclick="switchSettingsTab('menu')" id="tab-btn-menu" class="tab-btn px-6 py-3 mr-2 focus:outline-none rounded-t-lg whitespace-nowrap"><i class="fa-solid fa-list-check mr-2"></i> Menu Dasar</button>
-                        <button onclick="switchSettingsTab('announcement')" id="tab-btn-announcement" class="tab-btn px-6 py-3 mr-2 focus:outline-none rounded-t-lg whitespace-nowrap"><i class="fa-solid fa-bullhorn mr-2"></i> Pengumuman</button>
-                        <button onclick="switchSettingsTab('app')" id="tab-btn-app" class="tab-btn px-6 py-3 mr-2 focus:outline-none rounded-t-lg whitespace-nowrap"><i class="fa-solid fa-shield-halved mr-2"></i> Identitas & Keamanan</button>
-                    </div>
-
-                     <!-- TAB DASHBOARD LMS CONTENT -->
-                     <div id="tab-content-lms" class="space-y-6 animate-fade-in">
-                        <div class="bg-white rounded-xl shadow-md p-6 border border-gray-200">
-                            <div class="flex justify-between items-center mb-4 border-b pb-4">
-                                <div><h3 class="text-lg font-bold text-gray-800">Tambah Materi Dashboard / Ujian</h3><p class="text-sm text-gray-500">Materi atau Link Google Form ujian akan tampil di Dashboard Siswa.</p></div>
-                                <button onclick="resetLMSForm()" class="text-sm text-gray-500 hover:text-blue-600 flex items-center bg-gray-100 px-3 py-1 rounded-md transition-colors"><i class="fa-solid fa-rotate-left mr-2"></i> Reset Form</button>
-                            </div>
-                            <form onsubmit="saveLMS(event)" class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                <input type="hidden" id="lms-edit-id">
-                                <div class="col-span-1"><label class="block text-sm font-semibold text-gray-700 mb-1.5">Mata Pelajaran <span class="text-red-500">*</span></label><div class="relative"><i class="fa-solid fa-book absolute left-3 top-3.5 text-gray-400"></i><input type="text" id="lms-subject" list="subject-suggestions" class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none transition-shadow" placeholder="Cth: Matematika" required><datalist id="subject-suggestions"><option value="Matematika"><option value="Bahasa Indonesia"><option value="Bahasa Inggris"><option value="IPA / Sains"><option value="Produktif TJKT"></datalist></div></div>
-                                <div class="col-span-1"><label class="block text-sm font-semibold text-gray-700 mb-1.5">Judul Materi / Topik <span class="text-red-500">*</span></label><input type="text" id="lms-topic" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none transition-shadow" placeholder="Cth: Aljabar Linear" required></div>
-                                <div class="md:col-span-2"><label class="block text-sm font-semibold text-gray-700 mb-1.5">Link Sumber Belajar / Google Form <span class="text-red-500">*</span></label><div class="relative"><i class="fa-solid fa-link absolute left-3 top-3.5 text-gray-400"></i><input type="text" id="lms-url" class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none transition-shadow" placeholder="URL Youtube, PDF, atau Link Google Form..." required></div></div>
-                                <div><label class="block text-sm font-semibold text-gray-700 mb-1.5">Tipe Konten</label><select id="lms-type" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none bg-white"><option value="video">Video Pembelajaran</option><option value="ebook">E-Book / PDF</option><option value="exam">Ujian Online / CBT</option><option value="zoom">Meeting / Zoom</option></select></div>
-                                <div><label class="block text-sm font-semibold text-gray-700 mb-1.5">Nama Guru</label><input type="text" id="lms-teacher" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Cth: Bpk. Budi"></div>
-                                <div class="md:col-span-2 border rounded-lg p-4 bg-gray-50"><div class="flex items-center justify-between cursor-pointer" onclick="document.getElementById('lms-advanced').classList.toggle('hidden');"><span class="text-sm font-bold text-gray-700"><i class="fa-solid fa-clock mr-2"></i> Penjadwalan Waktu Ujian & Warna</span><i class="fa-solid fa-chevron-down text-gray-400"></i></div><div id="lms-advanced" class="hidden mt-4 grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="block text-xs font-medium text-gray-600 mb-1">Jam Buka Ujian</label><input type="time" id="lms-auto-open" class="w-full px-3 py-2 rounded border border-gray-300 text-sm"></div><div><label class="block text-xs font-medium text-gray-600 mb-1">Jam Tutup Ujian</label><input type="time" id="lms-auto-close" class="w-full px-3 py-2 rounded border border-gray-300 text-sm"></div><div><label class="block text-xs font-medium text-gray-600 mb-1">Status</label><select id="lms-status" class="w-full px-3 py-2 rounded border border-gray-300 text-sm"><option value="active">Terbit (Aktif)</option><option value="inactive">Draf</option></select></div><div><label class="block text-xs font-medium text-gray-600 mb-1">Warna Label</label><select id="lms-color" class="w-full px-3 py-2 rounded border border-gray-300 text-sm"><option value="auto">Otomatis</option><option value="blue">Biru</option><option value="green">Hijau</option><option value="purple">Ungu</option><option value="orange">Oranye</option><option value="red">Merah</option></select></div></div></div>
-                                <div class="md:col-span-2 mt-2"><button type="submit" id="btn-save-lms" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-all shadow-lg flex items-center justify-center"><i class="fa-solid fa-plus-circle mr-2 text-lg"></i> Simpan ke Database</button></div>
-                            </form>
-                        </div>
-                        <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
-                            <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center"><h3 class="font-bold text-gray-700"><i class="fa-solid fa-list-check mr-2 text-blue-500"></i> Daftar Materi & Ujian Terbit</h3><div class="flex gap-2"><input type="text" id="lms-search" onkeyup="renderLMSList()" placeholder="Cari..." class="text-xs px-3 py-1.5 border rounded-full hidden md:block"><button onclick="fetchFromDatabase(false)" class="text-xs text-blue-500 bg-blue-50 px-3 py-1.5 rounded-full font-medium"><i class="fa-solid fa-rotate mr-1"></i> Refresh</button></div></div>
-                            <div id="settings-lms-list" class="divide-y divide-gray-100 max-h-[600px] overflow-y-auto custom-scrollbar bg-slate-50"></div>
-                        </div>
-                    </div>
-
-                    <!-- E-LIBRARY ADMIN -->
-                    <div id="tab-content-lms-admin" class="hidden space-y-6">
-                        
-                        <!-- Panel Baru: Konfigurasi Fitur LMS -->
-                        <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200 mb-6">
-                            <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-toggle-on text-blue-600"></i> Konfigurasi Fitur</h3>
-                            <div class="flex flex-col md:flex-row gap-4 items-end">
-                                <div class="flex-1 w-full">
-                                    <label class="block text-sm font-bold text-gray-700 mb-2">Status E-Library (LMS)</label>
-                                    <select id="set-lms-status" onchange="saveAppSettings(event)" class="w-full px-4 py-2 rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-blue-500">
-                                        <option value="active">Aktif (Tampil di Dashboard & Sidebar)</option>
-                                        <option value="inactive">Non-Aktif (Sembunyikan)</option>
-                                    </select>
-                                    <p class="text-xs text-gray-400 mt-1">Perubahan disimpan otomatis.</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
-                                <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-cloud-arrow-up text-blue-600"></i> Upload Materi</h3>
-                                <form id="lms-upload-form" onsubmit="handleLMSUpload(event)">
-                                    <div class="mb-4">
-                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Kelas Tujuan</label>
-                                        <select id="lms-upload-class" class="w-full px-3 py-2 bg-slate-50 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                                            <option value="" disabled selected>-- Pilih Kelas --</option>
-                                        </select>
-                                    </div>
-                                    <div class="mb-4">
-                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">File PDF</label>
-                                        <input type="file" id="lms-upload-file" accept="application/pdf" required class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer border border-slate-300 rounded-lg">
-                                    </div>
-                                    <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors text-sm shadow-lg">Mulai Upload</button>
-                                </form>
-                            </div>
-                            <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
-                                <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-chalkboard-user text-green-600"></i> Manajemen Kelas</h3>
-                                <form onsubmit="handleSaveClass(event)" class="flex gap-2 mb-4">
-                                    <input type="text" id="new-class-name" placeholder="Nama Kelas (Cth: X TJKT)" class="flex-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none" required>
-                                    <button type="submit" class="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700"><i class="fa-solid fa-plus"></i></button>
-                                </form>
-                                <div class="overflow-y-auto max-h-[200px] custom-scrollbar border rounded-lg">
-                                    <table class="w-full text-sm text-left">
-                                        <thead class="bg-slate-50 border-b">
-                                            <tr><th class="px-4 py-2 text-xs text-slate-500">Nama Kelas</th><th class="px-4 py-2 text-right text-xs text-slate-500">Aksi</th></tr>
-                                        </thead>
-                                        <tbody id="class-list-body" class="divide-y divide-gray-100"></tbody>
-                                    </table>
-                                </div>
-                            </div>
-                            <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200 lg:col-span-3">
-                                <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-list-check text-purple-600"></i> Kelola File</h3>
-                                <div class="overflow-x-auto max-h-[400px] overflow-y-auto custom-scrollbar">
-                                    <table class="w-full text-sm text-left">
-                                        <thead class="text-xs text-slate-500 uppercase bg-slate-50 border-b sticky top-0 shadow-sm">
-                                            <tr>
-                                                <th class="px-4 py-3">Nama File</th>
-                                                <th class="px-4 py-3">Kelas</th>
-                                                <th class="px-4 py-3 text-right">Aksi</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="lms-admin-table-body" class="divide-y divide-gray-100"></tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- TAB MENU CONTENT -->
-                    <div id="tab-content-menu" class="hidden space-y-6">
-                        <div class="bg-white rounded-xl shadow-md p-6 border border-gray-200">
-                            <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800">Editor Menu Dasar</h3><button onclick="resetMenuForm()" class="text-sm text-gray-500 hover:text-blue-600"><i class="fa-solid fa-rotate-left mr-1"></i> Reset</button></div>
-                            <form onsubmit="saveMenu(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <input type="hidden" id="menu-edit-id">
-                                <div class="col-span-1"><label class="block text-sm font-medium text-gray-700 mb-1">Nama Menu</label><input type="text" id="menu-title" class="w-full px-4 py-2 rounded-lg border border-gray-300 outline-none" placeholder="Cth: Video Pembelajaran" required></div>
-                                <div class="col-span-1"><label class="block text-sm font-medium text-gray-700 mb-1">Link URL</label><input type="text" id="menu-url" class="w-full px-4 py-2 rounded-lg border border-gray-300 outline-none" placeholder="https://..." required></div>
-                                <div><label class="block text-sm font-medium text-gray-700 mb-1">Ikon</label><select id="menu-icon" class="w-full px-4 py-2 rounded-lg border border-gray-300 outline-none"><option value="fa-desktop">Desktop</option><option value="fa-book-open">Buku</option><option value="fa-pen-to-square">Ujian / Tulis</option><option value="fa-video">Video</option><option value="fa-file-pdf">Dokumen</option><option value="fa-globe">Bola Dunia</option></select></div>
-                                <div><label class="block text-sm font-medium text-gray-700 mb-1">Warna</label><select id="menu-color" class="w-full px-4 py-2 rounded-lg border border-gray-300 outline-none"><option value="blue">Biru</option><option value="green">Hijau</option><option value="purple">Ungu</option><option value="orange">Oranye</option><option value="red">Merah</option></select></div>
-                                <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700 mb-1">Status</label><select id="menu-status" class="w-full px-4 py-2 rounded-lg border border-gray-300 outline-none"><option value="active">Aktif</option><option value="inactive">Non-Aktif</option></select></div>
-                                <div class="md:col-span-1"><label class="block text-sm font-medium text-gray-700 mb-1">Buka</label><input type="time" id="menu-auto-open" class="w-full px-4 py-2 rounded-lg border border-gray-300 outline-none"></div>
-                                <div class="md:col-span-1"><label class="block text-sm font-medium text-gray-700 mb-1">Tutup</label><input type="time" id="menu-auto-close" class="w-full px-4 py-2 rounded-lg border border-gray-300 outline-none"></div>
-                                <div class="md:col-span-2"><button type="submit" id="btn-save-menu" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors shadow"><i class="fa-solid fa-plus mr-2"></i> Simpan ke Database</button></div>
-                            </form>
-                        </div>
-                        <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
-                            <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center"><h3 class="font-bold text-gray-700">Daftar Menu Aktif</h3><button onclick="fetchFromDatabase(false)" class="text-xs text-blue-500 hover:text-blue-700 underline"><i class="fa-solid fa-rotate mr-1"></i>Refresh Data</button></div>
-                            <div id="settings-menu-list" class="divide-y divide-gray-100 max-h-[500px] overflow-y-auto custom-scrollbar"></div>
-                        </div>
-                    </div>
-
-                    <!-- TAB ANNOUNCEMENT CONTENT -->
-                    <div id="tab-content-announcement" class="hidden space-y-6">
-                        <div class="bg-white rounded-xl shadow-md p-6 border border-gray-200">
-                            <h3 class="text-lg font-bold text-gray-800 mb-4">Buat Pengumuman Baru</h3>
-                            <form onsubmit="saveAnnouncement(event)" class="space-y-4">
-                                <input type="hidden" id="ann-edit-id">
-                                <!-- Input time disembunyikan agar otomatis -->
-                                <input type="hidden" id="ann-time">
-                                
-                                <div><label class="block text-sm font-medium text-gray-700 mb-1">Judul</label><input type="text" id="ann-title" class="w-full px-4 py-2 rounded-lg border border-gray-300 outline-none" required></div>
-                                <div><label class="block text-sm font-medium text-gray-700 mb-1">Isi Pesan</label><textarea id="ann-content" rows="3" class="w-full px-4 py-2 rounded-lg border border-gray-300 outline-none" required></textarea></div>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div><label class="block text-sm font-medium text-gray-700 mb-1">Tipe</label><select id="ann-type" class="w-full px-4 py-2 rounded-lg border border-gray-300 outline-none"><option value="info">Info Umum</option><option value="warning">Peringatan</option><option value="urgent">Penting</option></select></div>
-                                    <div class="flex items-end pb-2 text-sm text-gray-500 italic"><i class="fa-solid fa-clock mr-2"></i> Waktu akan diatur otomatis saat diterbitkan.</div>
-                                </div>
-                                <button type="submit" id="btn-save-ann" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors shadow"><i class="fa-solid fa-paper-plane mr-2"></i> Terbitkan ke Database</button>
-                            </form>
-                        </div>
-                        <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
-                            <div class="px-6 py-4 border-b border-gray-200 bg-gray-50"><h3 class="font-bold text-gray-700">Arsip Pengumuman</h3></div>
-                            <div id="settings-ann-list" class="divide-y divide-gray-100 max-h-[400px] overflow-y-auto custom-scrollbar"></div>
-                        </div>
-                    </div>
-
-                    <!-- TAB: APP IDENTITY CONTENT -->
-                    <div id="tab-content-app" class="hidden space-y-6">
-                         <div class="bg-white rounded-xl shadow-md p-6 border border-gray-200">
-                             <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center"><i class="fa-solid fa-school mr-2 text-blue-600"></i> Identitas Sekolah & Aplikasi</h3>
-                             <form onsubmit="saveAppSettings(event)" class="space-y-5">
-                                 
-                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                    <div>
-                                        <label class="block text-sm font-bold text-gray-700 mb-2">Nama Aplikasi</label>
-                                        <input type="text" id="set-app-name" class="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-blue-500" placeholder="Cth: NusanCBT">
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-bold text-gray-700 mb-2">Sub-Judul / Kelas</label>
-                                        <input type="text" id="set-app-subtitle" class="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-blue-500" placeholder="Cth: Dashboard Siswa">
-                                    </div>
-                                 </div>
-
-                                 <div>
-                                     <label class="block text-sm font-bold text-gray-700 mb-2">Running Text (Marquee)</label>
-                                     <textarea id="set-running-text" rows="2" class="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-blue-500" placeholder="Pesan berjalan di atas dashboard..."></textarea>
-                                 </div>
-
-                                 <div class="border-t pt-5">
-                                     <h4 class="text-md font-bold text-red-600 mb-3"><i class="fa-solid fa-lock mr-2"></i> Keamanan Admin</h4>
-                                     <div class="bg-red-50 p-4 rounded-lg border border-red-100">
-                                         <label class="block text-sm font-bold text-gray-700 mb-2">Password Admin Baru</label>
-                                         <div class="flex gap-2">
-                                             <input type="text" id="set-admin-password" class="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-red-500 font-bold tracking-widest" placeholder="Masukkan password baru...">
-                                             <button type="button" onclick="document.getElementById('set-admin-password').value = Math.floor(100000 + Math.random() * 900000)" class="whitespace-nowrap px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium">Acak PIN</button>
-                                         </div>
-                                     </div>
-                                 </div>
-
-                                 <div class="pt-2">
-                                     <button type="submit" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 px-6 rounded-lg transition-all shadow-lg flex items-center justify-center">
-                                         <i class="fa-solid fa-floppy-disk mr-2"></i> Simpan Pengaturan
-                                     </button>
-                                 </div>
-                             </form>
-                         </div>
-                    </div>
-
-                </div>
-            </div>
-        </div>
-    </main>
-
+    <!-- KONFIGURASI UJIAN (Bisa diubah oleh Guru) -->
     <script>
-        // =============================================================
-        // KONFIGURASI: GANTI URL DI BAWAH INI
-        // =============================================================
-        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx7JrypP6bBFdc7Uuq9GogxMMlsBlq0HXOsLyTWAcHCtmO1wQTAYe22Wzqj-9h98373/exec';
-        // =============================================================
+        // Konfigurasi Default
+        let CONFIG = {
+            schoolName: "SMA Negeri 1 Nusantara",
+            strictMode: true,
+            maxViolations: 3,
+            finishMessage: "Akses ke form ujian telah ditutup. Terima kasih telah mengikuti ujian ini.",
+            adminPassword: "112233",
+            // Fitur CRUD Bank Ujian
+            exams: [
+                {
+                    id: 1,
+                    title: "Ujian Akhir Semester - Matematika",
+                    formUrl: "https://docs.google.com/forms/d/e/1FAIpQLSe4xBxG-_uX3p2P9FmB1_A_G_H_2/viewform?embedded=true", 
+                    durationMinutes: 90, 
+                    examToken: "MAT123" 
+                }
+            ]
+        };
 
-        // --- STATE MANAGEMENT ---
-        let announcements = [];
-        let menus = [];
-        let classes = []; // State untuk daftar kelas
-        let appSettings = {}; 
-        let lastFetchedData = ""; 
-        let playlistUrls = []; 
-        let activeVideoIndex = 0; 
-        
-        // --- LMS DATA ---
-        let lmsLibraryData = []; 
-
-        // --- TASKS DATA (LOCAL) ---
-        let studentTasks = JSON.parse(localStorage.getItem('student_tasks')) || [];
-
-        // --- COLOR MAPS ---
-        const gradients = { blue: 'from-blue-500 to-blue-600', green: 'from-emerald-500 to-emerald-600', purple: 'from-purple-500 to-purple-600', orange: 'from-orange-500 to-orange-600', red: 'from-red-500 to-red-600' };
-        const textColors = { blue: 'text-blue-100', green: 'text-emerald-100', purple: 'text-purple-100', orange: 'text-orange-100', red: 'text-red-100' };
-
-        // --- DOM Elements ---
-        const mainIframe = document.getElementById('main-iframe');
-        const playlistSidebar = document.getElementById('playlist-sidebar');
-        const playlistItems = document.getElementById('playlist-items');
-        const playlistCounter = document.getElementById('playlist-counter');
-        const playlistToggleBtn = document.getElementById('playlist-toggle-btn');
-        const playlistToggleIcon = document.getElementById('playlist-toggle-icon');
-        const loader = document.getElementById('loader');
-        const pageTitle = document.getElementById('page-title');
-        const sidebarMenuContainer = document.getElementById('sidebar-dynamic-menu');
-        const homeCardsContainer = document.getElementById('home-cards-container');
-        const externalLink = document.getElementById('external-link');
-        const iframeError = document.getElementById('iframe-error');
-        const appLoading = document.getElementById('app-loading');
-        const curfewBanner = document.getElementById('curfew-banner');
-
-        // --- INITIALIZATION ---
-        init();
-
-        async function init() {
-            updateClock();
-            setInterval(updateClock, 1000); 
-            if (GOOGLE_SCRIPT_URL.includes('GANTI_DENGAN')) {
-                appLoading.innerHTML = '<div class="text-center p-4"><h3 class="text-xl font-bold text-red-600">Error Konfigurasi</h3><p>Anda belum memasukkan URL Google Script di dalam kode HTML.</p></div>';
-                return;
+        // Muat konfigurasi dari penyimpanan lokal & Migrasi jika diperlukan
+        const savedConfig = localStorage.getItem('examConfig');
+        if (savedConfig) {
+            let parsed = JSON.parse(savedConfig);
+            // Migrasi data lama ke format array (jika admin pakai versi kode sebelumnya)
+            if (!parsed.exams && parsed.examTitle) {
+                parsed.exams = [{
+                    id: Date.now(),
+                    title: parsed.examTitle,
+                    formUrl: parsed.formUrl,
+                    durationMinutes: parsed.durationMinutes,
+                    examToken: parsed.examToken || ""
+                }];
+                // Hapus properti lama agar bersih
+                delete parsed.examTitle; delete parsed.formUrl; delete parsed.durationMinutes; delete parsed.examToken;
             }
-            // Fetch All Data
-            await fetchFromDatabase(false); 
-            fetchLMSLibrary(); 
-            renderTaskList(); // Render tasks
-
-            setInterval(() => fetchFromDatabase(true), 10000); // Sync data sheet tiap 10s
+            CONFIG = { ...CONFIG, ...parsed };
         }
+    </script>
 
-        // --- CALCULATOR LOGIC ---
-        function toggleCalculator() {
-            const modal = document.getElementById('calculator-modal');
-            modal.classList.toggle('hidden');
-        }
-
-        function calcAppend(val) {
-            const display = document.getElementById('calc-display');
-            if(display.value === '0') display.value = val;
-            else display.value += val;
-        }
-
-        function calcClear() {
-            document.getElementById('calc-display').value = '0';
-        }
-
-        function calcResult() {
-            const display = document.getElementById('calc-display');
-            try {
-                display.value = eval(display.value) || 0;
-            } catch(e) {
-                display.value = 'Error';
-                setTimeout(calcClear, 1000);
-            }
-        }
-
-        // --- TASKS / AGENDA LOGIC (LOCAL STORAGE) ---
-        function handleAddTask(e) {
-            e.preventDefault();
-            const subject = document.getElementById('task-subject').value;
-            const title = document.getElementById('task-title').value;
-            const date = document.getElementById('task-date').value;
-
-            const newTask = {
-                id: Date.now(),
-                subject: subject,
-                title: title,
-                date: date,
-                completed: false
-            };
-
-            studentTasks.unshift(newTask); // Add to top
-            saveTasks();
-            renderTaskList();
-            e.target.reset();
-        }
-
-        function toggleTask(id) {
-            const task = studentTasks.find(t => t.id === id);
-            if(task) {
-                task.completed = !task.completed;
-                saveTasks();
-                renderTaskList();
-            }
-        }
-
-        function deleteTask(id) {
-            studentTasks = studentTasks.filter(t => t.id !== id);
-            saveTasks();
-            renderTaskList();
-        }
-
-        function clearCompletedTasks() {
-            studentTasks = studentTasks.filter(t => !t.completed);
-            saveTasks();
-            renderTaskList();
-        }
-
-        function saveTasks() {
-            localStorage.setItem('student_tasks', JSON.stringify(studentTasks));
-        }
-
-        function renderTaskList() {
-            const container = document.getElementById('task-list-container');
-            const statCompleted = document.getElementById('stat-completed');
-            const statPending = document.getElementById('stat-pending');
+    <!-- LAYAR PERSIAPAN (Welcome Screen) -->
+    <div id="welcome-screen" class="min-h-screen flex items-center justify-center p-4">
+        <div class="bg-white max-w-2xl w-full rounded-2xl shadow-xl overflow-hidden">
+            <div class="bg-blue-600 p-6 text-white text-center">
+                <i class="fas fa-graduation-cap text-4xl mb-3"></i>
+                <h1 id="ws-school" class="text-2xl font-bold opacity-90">Nama Sekolah</h1>
+                <p class="text-blue-200 mt-1">Portal Ujian Terpadu</p>
+            </div>
             
-            container.innerHTML = '';
+            <div class="p-8">
+                <!-- Pilihan Ujian (Dropdown) -->
+                <div class="mb-6 bg-blue-50 p-5 rounded-xl border border-blue-100">
+                    <label class="block text-sm font-bold text-blue-800 mb-2"><i class="fas fa-book mr-1"></i> Pilih Ujian yang Tersedia:</label>
+                    <select id="student-exam-select" onchange="onStudentExamChange()" class="w-full border-2 border-blue-200 rounded-lg p-3 focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none transition font-semibold text-gray-700 bg-white">
+                        <!-- Options diisi oleh JS -->
+                    </select>
+                </div>
+
+                <h3 class="text-lg font-bold mb-4 border-b pb-2"><i class="fas fa-clipboard-list mr-2 text-blue-500"></i>Peraturan Ujian</h3>
+                <ul class="space-y-3 mb-8 text-gray-600 text-sm">
+                    <li class="flex items-start">
+                        <i class="fas fa-clock mt-1 mr-3 text-red-500 text-base"></i>
+                        <span>Waktu ujian adalah <strong id="ws-duration" class="text-gray-800">0</strong> menit. Waktu akan berjalan saat Anda klik tombol mulai.</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-expand mt-1 mr-3 text-purple-500 text-base"></i>
+                        <span>Ujian akan berjalan dalam <strong>Mode Layar Penuh (Fullscreen)</strong>. Dilarang keluar dari mode ini.</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-window-restore mt-1 mr-3 text-orange-500 text-base"></i>
+                        <span><strong>Sistem Anti-Curang Aktif:</strong> Jika Anda membuka tab/aplikasi lain, sistem akan mencatat pelanggaran. Ujian otomatis ditutup setelah <strong id="ws-max-violations">3</strong> pelanggaran.</span>
+                    </li>
+                </ul>
+
+                <!-- Token Input -->
+                <div id="token-container" class="mb-6 hidden">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2 text-center">Token Ujian <span class="text-red-500">*</span></label>
+                    <input type="text" id="student-token" class="w-full border-2 border-gray-300 rounded-xl p-4 focus:ring-4 focus:ring-blue-200 focus:border-blue-500 outline-none transition uppercase tracking-widest text-center font-bold text-lg" placeholder="MASUKKAN TOKEN">
+                    <p id="token-error" class="text-red-500 text-sm hidden mt-2 text-center font-medium"><i class="fas fa-exclamation-circle mr-1"></i> Token yang Anda masukkan salah!</p>
+                </div>
+
+                <button id="btn-start" onclick="startExam()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-[1.02] shadow-lg flex justify-center items-center text-lg">
+                    <i class="fas fa-play-circle mr-2 text-xl"></i> Mulai Ujian Sekarang
+                </button>
+
+                <!-- Tombol Admin -->
+                <div class="mt-6 text-center">
+                    <button onclick="promptAdmin()" class="text-sm text-gray-400 hover:text-gray-600 transition duration-200">
+                        <i class="fas fa-cog mr-1"></i> Panel Admin
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LAYAR UJIAN (Exam Screen) -->
+    <div id="exam-screen" class="hidden flex-col h-screen w-full bg-white">
+        <!-- Navbar / Header Ujian -->
+        <div class="h-16 bg-white shadow-md flex justify-between items-center px-6 z-10">
+            <div class="flex items-center">
+                <div class="bg-blue-100 text-blue-700 p-2 rounded-lg mr-3">
+                    <i class="fas fa-laptop-code"></i>
+                </div>
+                <div>
+                    <h1 id="es-title" class="font-bold text-gray-800 leading-tight truncate max-w-[200px] md:max-w-md">Judul Ujian</h1>
+                    <p id="es-school" class="text-xs text-gray-500">Nama Sekolah</p>
+                </div>
+            </div>
             
-            // Stats
-            const completedCount = studentTasks.filter(t => t.completed).length;
-            const pendingCount = studentTasks.length - completedCount;
-            statCompleted.textContent = completedCount;
-            statPending.textContent = pendingCount;
+            <div class="flex items-center space-x-2 md:space-x-4">
+                <div id="violation-badge" class="hidden bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs md:text-sm font-bold animate-pulse">
+                    <i class="fas fa-exclamation-triangle md:mr-1"></i> <span class="hidden md:inline">Peringatan:</span> <span id="violation-count">0</span>
+                </div>
+                <div class="bg-gray-100 border border-gray-200 px-3 md:px-4 py-2 rounded-lg flex items-center">
+                    <i class="fas fa-stopwatch text-lg md:text-xl mr-2 text-blue-600"></i>
+                    <span id="timer-display" class="text-lg md:text-xl font-mono font-bold text-gray-800">00:00:00</span>
+                </div>
+            </div>
+        </div>
 
-            if(studentTasks.length === 0) {
-                container.innerHTML = `<div class="text-center py-10 text-gray-400 bg-white rounded-xl border border-dashed border-gray-300"><i class="fa-solid fa-clipboard-check text-4xl mb-3 opacity-50"></i><p>Belum ada tugas dicatat.</p></div>`;
-                return;
-            }
+        <!-- Google Form Iframe -->
+        <div class="iframe-container w-full relative bg-gray-50">
+            <!-- Loading Indicator -->
+            <div id="loading-indicator" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 z-0">
+                <i class="fas fa-circle-notch fa-spin text-4xl text-blue-500 mb-3"></i>
+                <p class="text-gray-500">Memuat Soal Ujian...</p>
+            </div>
+            <iframe 
+                id="gform-iframe" 
+                src="" 
+                class="w-full h-full border-0 relative z-10 bg-transparent"
+                frameborder="0" 
+                marginheight="0" 
+                marginwidth="0"
+                onload="document.getElementById('loading-indicator').style.display='none';">
+            </iframe>
+        </div>
+    </div>
 
-            // Sort: Pending first, then by date
-            studentTasks.sort((a, b) => {
-                if(a.completed === b.completed) return new Date(a.date) - new Date(b.date);
-                return a.completed ? 1 : -1;
-            });
+    <!-- LAYAR SELESAI (Finish Screen) -->
+    <div id="finish-screen" class="hidden min-h-screen flex items-center justify-center p-4">
+        <div class="bg-white max-w-md w-full rounded-2xl shadow-xl p-8 text-center border-t-8 border-green-500">
+            <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-check text-4xl text-green-500"></i>
+            </div>
+            <h2 id="fs-title" class="text-2xl font-bold text-gray-800 mb-2">Ujian Selesai</h2>
+            <p id="fs-message" class="text-gray-600 mb-6">Akses ke form ujian telah ditutup. Terima kasih telah mengikuti ujian ini.</p>
+            
+            <button onclick="window.close()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-6 rounded-lg transition duration-200">
+                Tutup Halaman
+            </button>
+        </div>
+    </div>
 
-            studentTasks.forEach(task => {
-                const isLate = new Date(task.date) < new Date().setHours(0,0,0,0) && !task.completed;
-                const lateBadge = isLate ? `<span class="bg-red-100 text-red-600 text-[10px] px-2 py-0.5 rounded-full font-bold ml-2">Terlambat</span>` : '';
-                
-                let subjectColor = 'bg-gray-100 text-gray-600';
-                if(task.subject === 'Matematika') subjectColor = 'bg-blue-100 text-blue-600';
-                if(task.subject === 'Bahasa Indonesia') subjectColor = 'bg-yellow-100 text-yellow-700';
-                if(task.subject === 'IPA/Sains') subjectColor = 'bg-green-100 text-green-600';
+    <!-- MODAL PASSWORD ADMIN (Popup Kustom) -->
+    <div id="password-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 z-50 items-center justify-center p-4">
+        <div class="bg-white max-w-sm w-full rounded-xl shadow-2xl p-6 transform transition-all">
+            <div class="flex items-center justify-between mb-5">
+                <h3 class="text-xl font-bold text-gray-800"><i class="fas fa-lock text-gray-500 mr-2"></i> Akses Admin</h3>
+                <button onclick="closePasswordModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+            </div>
+            <input type="password" id="admin-password-input" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none transition mb-2" placeholder="Masukkan password...">
+            <p id="password-error" class="text-red-500 text-sm hidden mb-4"><i class="fas fa-exclamation-circle mr-1"></i> Password salah!</p>
+            <div class="mt-5 flex justify-end space-x-3">
+                <button onclick="closePasswordModal()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition">Batal</button>
+                <button onclick="verifyPassword()" class="px-6 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 font-bold transition">Masuk</button>
+            </div>
+        </div>
+    </div>
 
-                container.innerHTML += `
-                    <div class="task-item ${task.completed ? 'completed opacity-60 bg-gray-50' : 'bg-white'} p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between group">
-                        <div class="flex items-center gap-3 overflow-hidden">
-                            <button onclick="toggleTask(${task.id})" class="flex-shrink-0 w-6 h-6 rounded-full border-2 ${task.completed ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300 text-transparent hover:border-green-500'} flex items-center justify-center transition-colors">
-                                <i class="fa-solid fa-check text-xs"></i>
-                            </button>
-                            <div class="min-w-0">
-                                <h4 class="font-bold text-gray-800 text-sm truncate task-title">${task.title} ${lateBadge}</h4>
-                                <div class="flex items-center gap-2 mt-1">
-                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded ${subjectColor}">${task.subject}</span>
-                                    <span class="text-xs text-gray-400 flex items-center"><i class="fa-regular fa-calendar mr-1"></i> ${new Date(task.date).toLocaleDateString('id-ID', {day: 'numeric', month: 'short'})}</span>
+    <!-- LAYAR ADMIN (Admin Dashboard) -->
+    <div id="admin-screen" class="hidden min-h-screen flex items-center justify-center p-4 bg-gray-800">
+        <div class="bg-white max-w-5xl w-full rounded-2xl shadow-2xl overflow-hidden max-h-[95vh] flex flex-col">
+            <div class="bg-gray-900 p-5 text-white flex justify-between items-center shrink-0">
+                <div>
+                    <h2 class="text-xl font-bold"><i class="fas fa-cogs mr-2"></i> Panel Admin & Manajemen Ujian</h2>
+                </div>
+                <button onclick="closeAdmin()" class="text-gray-400 hover:text-white transition"><i class="fas fa-times text-2xl"></i></button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto custom-scrollbar bg-gray-50 flex-1">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    
+                    <!-- KOLOM KIRI: Pengaturan Umum -->
+                    <div class="lg:col-span-1 space-y-4">
+                        <div class="bg-white p-5 rounded-xl border shadow-sm">
+                            <h3 class="font-bold text-gray-800 mb-4 border-b pb-2"><i class="fas fa-sliders-h mr-2"></i>Pengaturan Portal</h3>
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-600 mb-1">Nama Sekolah / Instansi</label>
+                                    <input type="text" id="admin-school" class="w-full border rounded-lg p-2 text-sm focus:ring-2 outline-none">
                                 </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-600 mb-1">Mode Ketat (Anti-Curang)</label>
+                                    <select id="admin-strict" class="w-full border rounded-lg p-2 text-sm focus:ring-2 outline-none">
+                                        <option value="true">Aktif</option>
+                                        <option value="false">Mati (Open Book)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-600 mb-1">Batas Tab Baru (0 = Langsung Tutup)</label>
+                                    <input type="number" id="admin-max-violations" class="w-full border rounded-lg p-2 text-sm focus:ring-2 outline-none" min="0">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-600 mb-1">Password Admin</label>
+                                    <input type="text" id="admin-password-set" class="w-full border rounded-lg p-2 text-sm focus:ring-2 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-600 mb-1">Pesan Penutup</label>
+                                    <textarea id="admin-finish-msg" rows="2" class="w-full border rounded-lg p-2 text-sm focus:ring-2 outline-none"></textarea>
+                                </div>
+                                <button onclick="saveGlobalSettings()" class="w-full bg-gray-800 text-white text-sm font-bold py-2 rounded-lg hover:bg-gray-900 transition mt-2"><i class="fas fa-save mr-1"></i> Simpan Pengaturan</button>
                             </div>
                         </div>
-                        <button onclick="deleteTask(${task.id})" class="text-gray-400 hover:text-red-500 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <i class="fa-solid fa-trash"></i>
-                        </button>
+                        <button onclick="resetToDefault()" class="w-full text-xs text-red-500 hover:text-red-700 underline text-center mt-2">Reset semua ke pengaturan awal kode</button>
                     </div>
-                `;
-            });
+
+                    <!-- KOLOM KANAN: Manajemen Bank Ujian (CRUD) -->
+                    <div class="lg:col-span-2">
+                        <div class="bg-white p-5 rounded-xl border shadow-sm h-full flex flex-col">
+                            <h3 class="font-bold text-gray-800 mb-4 border-b pb-2 flex justify-between items-center">
+                                <span><i class="fas fa-database mr-2"></i>Bank Ujian</span>
+                                <button onclick="openCrudForm()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded flex items-center"><i class="fas fa-plus mr-1"></i> Tambah Baru</button>
+                            </h3>
+
+                            <!-- Form CRUD (Hidden by default) -->
+                            <div id="crud-form-container" class="hidden bg-blue-50 border border-blue-200 p-4 rounded-lg mb-4">
+                                <h4 id="crud-form-title" class="font-bold text-blue-800 text-sm mb-3">Tambah Ujian Baru</h4>
+                                <input type="hidden" id="crud-id">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                                    <div class="md:col-span-2">
+                                        <label class="block text-xs font-semibold text-gray-600 mb-1">Judul Ujian</label>
+                                        <input type="text" id="crud-title" class="w-full border rounded p-2 text-sm focus:ring-2 outline-none" placeholder="Cth: Matematika Kelas X">
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <label class="block text-xs font-semibold text-gray-600 mb-1">URL Google Form <span class="text-red-500">*</span></label>
+                                        <input type="url" id="crud-url" class="w-full border rounded p-2 text-sm focus:ring-2 outline-none" placeholder="https://docs.google.com/forms/...">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gray-600 mb-1">Durasi (Menit)</label>
+                                        <input type="number" id="crud-duration" class="w-full border rounded p-2 text-sm focus:ring-2 outline-none" placeholder="90">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gray-600 mb-1">Token <span class="text-gray-400 font-normal">(Kosongkan jika tidak ada)</span></label>
+                                        <input type="text" id="crud-token" class="w-full border rounded p-2 text-sm uppercase focus:ring-2 outline-none" placeholder="Cth: BISMILLAH">
+                                    </div>
+                                </div>
+                                <div class="flex justify-end space-x-2">
+                                    <button onclick="closeCrudForm()" class="px-3 py-1.5 text-xs text-gray-600 bg-gray-200 hover:bg-gray-300 rounded font-bold">Batal</button>
+                                    <button onclick="saveCrudExam()" class="px-4 py-1.5 text-xs text-white bg-green-600 hover:bg-green-700 rounded font-bold"><i class="fas fa-check mr-1"></i> Simpan Data</button>
+                                </div>
+                            </div>
+
+                            <!-- Tabel Daftar Ujian -->
+                            <div class="overflow-x-auto flex-1 border rounded-lg">
+                                <table class="w-full text-left border-collapse text-sm">
+                                    <thead>
+                                        <tr class="bg-gray-100 text-gray-700">
+                                            <th class="p-3 border-b font-semibold w-8 text-center">No</th>
+                                            <th class="p-3 border-b font-semibold">Judul Ujian</th>
+                                            <th class="p-3 border-b font-semibold w-20 text-center">Durasi</th>
+                                            <th class="p-3 border-b font-semibold w-24 text-center">Token</th>
+                                            <th class="p-3 border-b font-semibold w-24 text-center">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="admin-exam-list" class="divide-y text-gray-600">
+                                        <!-- Rendered via JS -->
+                                    </tbody>
+                                </table>
+                                <div id="empty-exam-msg" class="hidden p-6 text-center text-gray-400 italic">
+                                    Belum ada ujian yang ditambahkan.
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            <div class="bg-gray-100 p-4 shrink-0 text-right border-t">
+                <button onclick="closeAdmin()" class="px-6 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 font-bold transition">Kembali ke Portal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGIK JAVASCRIPT -->
+    <script>
+        // State Ujian Berjalan
+        let timerInterval;
+        let timeRemaining = 0;
+        let violations = 0;
+        let isExamActive = false;
+        let currentSelectedExam = null; // Menyimpan data ujian yang dipilih siswa
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initPortalUI();
+        });
+
+        // ================= FITUR PORTAL (STUDENT) =================
+        
+        function initPortalUI() {
+            document.getElementById('ws-school').textContent = CONFIG.schoolName;
+            document.getElementById('ws-max-violations').textContent = CONFIG.maxViolations;
+            document.getElementById('es-school').textContent = CONFIG.schoolName;
+
+            renderStudentExamSelect();
         }
 
-        // --- DATABASE FETCHING (SPREADSHEET) ---
-        async function fetchFromDatabase(isBackground = false) {
-            try {
-                // Gunakan getTime untuk cache busting
-                const response = await fetch(GOOGLE_SCRIPT_URL + '?action=read&t=' + new Date().getTime());
-                const data = await response.json();
-                
-                if (data.status === 'success') {
-                    const currentDataString = JSON.stringify(data);
-                    if (currentDataString !== lastFetchedData) {
-                        menus = data.menus || [];
-                        announcements = data.announcements || [];
-                        classes = data.classes || []; // Ambil data kelas
-                        appSettings = data.settings || {}; 
-                        
-                        lastFetchedData = currentDataString;
-                        applyGlobalSettings();
-                        refreshUI();
-                        updateClassDropdowns(); // Update UI kelas
-                    }
-                    if (!isBackground) appLoading.classList.add('hidden');
-                }
-            } catch (error) {
-                console.error("Error fetching data:", error);
-                if (!isBackground) appLoading.classList.add('hidden');
-            }
-        }
-
-        // --- LMS FETCHING (GOOGLE DRIVE) ---
-        async function fetchLMSLibrary() {
-            const loading = document.getElementById('lms-loading');
-            const grid = document.getElementById('lms-file-grid');
+        function renderStudentExamSelect() {
+            const selectEl = document.getElementById('student-exam-select');
+            selectEl.innerHTML = ''; // Kosongkan
             
-            if(lmsLibraryData.length === 0) {
-                 loading.classList.remove('hidden');
-                 grid.classList.add('hidden');
-            }
-
-            try {
-                const response = await fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'getLMSLibrary' })
-                });
-                const result = await response.json();
-                
-                loading.classList.add('hidden');
-                grid.classList.remove('hidden');
-
-                if(result.status === 'success') {
-                    lmsLibraryData = result.data;
-                    renderLMSLibrary(lmsLibraryData);
-                    // Jika tab admin terbuka, refresh juga tabel admin
-                    if(!document.getElementById('tab-content-lms-admin').classList.contains('hidden')) {
-                        renderLMSAdminTable();
-                    }
-                }
-            } catch (error) {
-                console.error("Error fetching LMS:", error);
-                loading.classList.add('hidden');
-            }
-        }
-
-        // --- SEND TO DB GENERIC ---
-        async function sendToDatabase(action, payload) {
-            Swal.fire({ title: 'Memproses...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
-            try {
-                const response = await fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: action, ...payload })
-                });
-                const data = await response.json();
-                
-                if (data.status === 'success') {
-                    // Update state lokal
-                    if(data.menus) menus = data.menus;
-                    if(data.announcements) announcements = data.announcements;
-                    if(data.classes) {
-                         classes = data.classes;
-                         updateClassDropdowns();
-                    }
-                    if(data.settings) {
-                        appSettings = data.settings;
-                        applyGlobalSettings(); // Langsung update UI identity
-                    }
-
-                    refreshUI();
-                    Swal.fire("Berhasil", "Data berhasil disimpan!", "success");
-                    return true;
-                } else {
-                    throw new Error(data.message || "Gagal menyimpan");
-                }
-            } catch (error) {
-                console.error("Error saving data:", error);
-                Swal.fire("Error", "Gagal: " + error.message, "error");
-                return false;
-            }
-        }
-
-        // --- UI UPDATERS (KELAS) ---
-        function updateClassDropdowns() {
-            // 1. Update Dropdown Upload
-            const uploadSelect = document.getElementById('lms-upload-class');
-            uploadSelect.innerHTML = '<option value="" disabled selected>-- Pilih Kelas --</option>';
-            classes.forEach(c => {
-                uploadSelect.innerHTML += `<option value="${c.name}">${c.name}</option>`;
-            });
-
-            // 2. Update Filter Buttons (Student View)
-            const filterContainer = document.getElementById('lms-filter-container');
-            // Simpan tombol "Semua"
-            filterContainer.innerHTML = '<button onclick="filterLMSMateri(\'Semua\')" class="filter-btn px-4 py-1.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200">Semua</button>';
-            classes.forEach(c => {
-                filterContainer.innerHTML += `<button onclick="filterLMSMateri('${c.name}')" class="filter-btn px-4 py-1.5 rounded-full text-xs font-medium bg-white text-gray-600 border hover:bg-gray-50">${c.name}</button>`;
-            });
-
-            // 3. Update Table List Kelas (Admin View)
-            const tbody = document.getElementById('class-list-body');
-            tbody.innerHTML = '';
-            classes.forEach(c => {
-                tbody.innerHTML += `
-                    <tr>
-                        <td class="px-4 py-2 text-slate-700 font-medium">${c.name}</td>
-                        <td class="px-4 py-2 text-right">
-                             <button onclick="handleDeleteClass('${c.id}')" class="text-red-500 hover:text-red-700 text-xs font-bold"><i class="fa-solid fa-trash"></i></button>
-                        </td>
-                    </tr>
-                `;
-            });
-        }
-
-        // --- CRUD KELAS HANDLERS ---
-        function handleSaveClass(e) {
-            e.preventDefault();
-            const nameInput = document.getElementById('new-class-name');
-            const newName = nameInput.value.trim();
-            if(!newName) return;
-            
-            // Cek duplikat
-            if(classes.some(c => c.name.toLowerCase() === newName.toLowerCase())) {
-                Swal.fire('Error', 'Nama kelas sudah ada!', 'error');
+            if (!CONFIG.exams || CONFIG.exams.length === 0) {
+                selectEl.innerHTML = '<option value="">-- Tidak ada ujian tersedia --</option>';
+                selectEl.disabled = true;
+                document.getElementById('btn-start').classList.add('opacity-50', 'cursor-not-allowed');
+                document.getElementById('btn-start').disabled = true;
                 return;
             }
 
-            const payload = {
-                data: {
-                    id: 'cls_' + Date.now(),
-                    name: newName,
-                    description: 'Kelas ' + newName
-                }
-            };
-            sendToDatabase('saveClass', payload).then(success => {
-                if(success) nameInput.value = '';
+            selectEl.disabled = false;
+            document.getElementById('btn-start').classList.remove('opacity-50', 'cursor-not-allowed');
+            document.getElementById('btn-start').disabled = false;
+
+            // Tambahkan option placeholder
+            selectEl.innerHTML = '<option value="" disabled selected>-- Klik di sini untuk memilih ujian --</option>';
+
+            CONFIG.exams.forEach(exam => {
+                const opt = document.createElement('option');
+                opt.value = exam.id;
+                opt.textContent = exam.title;
+                selectEl.appendChild(opt);
             });
+
+            // Paksa reset tampilan
+            onStudentExamChange();
         }
 
-        function handleDeleteClass(id) {
-            Swal.fire({ title: 'Hapus Kelas?', text: 'Folder di Drive tidak akan terhapus otomatis demi keamanan file.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33' })
-            .then((result) => {
-                if(result.isConfirmed) {
-                    sendToDatabase('deleteClass', { id: id });
-                }
-            });
-        }
-
-        // --- APPLY GLOBAL SETTINGS ---
-        function applyGlobalSettings() {
-            if(appSettings.app_name) {
-                document.getElementById('sidebar-app-name').textContent = appSettings.app_name;
-                document.title = appSettings.app_name;
-            }
-            if(appSettings.app_subtitle) {
-                document.getElementById('sidebar-app-subtitle').textContent = appSettings.app_subtitle;
-            } else {
-                 document.getElementById('sidebar-app-subtitle').textContent = "Dashboard Siswa";
-            }
+        function onStudentExamChange() {
+            const selectEl = document.getElementById('student-exam-select');
+            const selectedId = parseInt(selectEl.value);
             
-            const marqueeContainer = document.getElementById('marquee-container');
-            const marqueeText = document.getElementById('marquee-text');
-            if(appSettings.running_text && appSettings.running_text.trim() !== "") {
-                marqueeContainer.classList.remove('hidden');
-                marqueeText.textContent = appSettings.running_text;
-            } else {
-                marqueeContainer.classList.add('hidden');
-            }
+            currentSelectedExam = CONFIG.exams.find(e => e.id === selectedId) || null;
 
-            // LMS Feature Visibility in Sidebar
-            const lmsSidebarBtn = document.getElementById('btn-lms');
-            if(appSettings.lms_feature_status === 'inactive') {
-                lmsSidebarBtn.classList.add('hidden');
-            } else {
-                lmsSidebarBtn.classList.remove('hidden');
-            }
+            // Reset Input Token UI
+            const tokenInput = document.getElementById('student-token');
+            const tokenContainer = document.getElementById('token-container');
+            tokenInput.value = "";
+            tokenInput.classList.remove('border-red-500');
+            document.getElementById('token-error').classList.add('hidden');
 
-            document.getElementById('set-app-name').value = appSettings.app_name || '';
-            document.getElementById('set-app-subtitle').value = appSettings.app_subtitle || '';
-            document.getElementById('set-running-text').value = appSettings.running_text || '';
-            document.getElementById('set-admin-password').value = appSettings.admin_password || '';
-            document.getElementById('set-lms-status').value = appSettings.lms_feature_status || 'active';
-        }
-
-        function saveAppSettings(e) {
-            e.preventDefault();
-            const newData = {
-                app_name: document.getElementById('set-app-name').value,
-                app_subtitle: document.getElementById('set-app-subtitle').value,
-                running_text: document.getElementById('set-running-text').value,
-                admin_password: document.getElementById('set-admin-password').value,
-                lms_feature_status: document.getElementById('set-lms-status').value
-            };
-            sendToDatabase('saveSettings', { data: newData });
-        }
-
-        // --- PASSWORD VERIFICATION ---
-        function verifyPassword(e) { 
-            e.preventDefault(); 
-            const inputPass = document.getElementById('admin-password').value;
-            const target = document.getElementById('auth-target').value;
-            
-            const validPass = appSettings.admin_password ? String(appSettings.admin_password) : '112233';
-            
-            if (inputPass === validPass) { 
-                closePasswordModal(); 
-                executeSwitch('settings'); 
-            } else { 
-                Swal.fire({ icon: 'error', title: 'Akses Ditolak', text: 'Password Salah.' }); 
-            } 
-        }
-
-        // --- HELPER: URL Validator ---
-        function isValidUrl(string) {
-            try {
-                if(!string || string.trim() === '') return false;
-                if(!string.match(/^https?:\/\//)) return false; 
-                new URL(string);
-                return true;
-            } catch (_) {
-                return false;
-            }
-        }
-
-        function showIframeError(isInvalidFormat = false) {
-             const errorDiv = document.getElementById('iframe-error');
-             const errorTitle = document.getElementById('error-title');
-             const errorMessage = document.getElementById('error-message');
-             const errorIcon = document.getElementById('error-icon');
-             
-             errorDiv.classList.remove('hidden');
-             loader.style.display = 'none';
-             
-             if(isInvalidFormat) {
-                 errorTitle.textContent = "URL Tidak Valid (404)";
-                 errorMessage.textContent = "Link yang Anda tuju formatnya salah atau kosong. Pastikan link dimulai dengan https://";
-                 errorIcon.className = "fa-solid fa-link-slash text-4xl text-red-500";
-             } else {
-                 errorTitle.textContent = "Tidak Dapat Memuat Halaman";
-                 errorMessage.textContent = "Website menolak ditampilkan (refused to connect) atau sedang offline.";
-                 errorIcon.className = "fa-solid fa-face-frown text-4xl text-gray-400";
-             }
-        }
-
-        // --- HELPER: Time Ago ---
-        function timeAgo(dateParam) {
-            if (!dateParam) return null;
-            
-            const date = new Date(dateParam);
-            const now = new Date();
-            
-            // Fallback jika format tanggal tidak valid (misal: data lama teks manual)
-            if (isNaN(date.getTime())) {
-                return dateParam;
-            }
-            
-            const seconds = Math.floor((now - date) / 1000);
-            const minutes = Math.floor(seconds / 60);
-            const hours = Math.floor(minutes / 60);
-            const days = Math.floor(hours / 24);
-
-            if (seconds < 60) return "Baru saja";
-            if (minutes < 60) return `${minutes} menit yang lalu`;
-            if (hours < 24) return `${hours} jam yang lalu`;
-            if (days < 7) return `${days} hari yang lalu`;
-            
-            // Jika lebih dari seminggu, tampilkan tanggal
-            return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-        }
-
-        // --- NAVIGATION LOGIC ---
-        function refreshUI() {
-            renderSidebar();
-            renderHome();
-            renderMenuSettingsList();
-            renderAnnouncementSettingsList();
-            renderLMSList();
-            renderCBTList(); // Render UI CBT
-        }
-
-        function switchView(viewId) {
-            if (viewId === 'settings') { 
-                document.getElementById('auth-target').value = 'settings';
-                document.getElementById('password-modal').classList.remove('hidden'); 
-                document.getElementById('admin-password').value = ''; 
-                return; 
-            }
-            executeSwitch(viewId);
-        }
-
-        function executeSwitch(viewId) {
-            document.querySelectorAll('.nav-item').forEach(el => { el.classList.remove('active', 'bg-blue-600', 'text-white'); el.classList.add('hover:bg-slate-800'); el.querySelector('i').classList.add('text-slate-400'); });
-            const activeBtn = document.getElementById(`btn-${viewId}`);
-            if(activeBtn) { activeBtn.classList.add('active'); activeBtn.classList.remove('hover:bg-slate-800'); activeBtn.querySelector('i').classList.remove('text-slate-400'); }
-            
-            if(window.innerWidth < 1024) { document.getElementById('sidebar').classList.add('-translate-x-full'); document.getElementById('mobile-overlay').classList.add('hidden'); }
-            
-            // Tambahkan 'view-cbt' ke daftar view yang akan di-hidden
-            ['view-home', 'view-iframe-wrapper', 'view-settings', 'view-lms', 'view-tasks', 'view-cbt'].forEach(id => document.getElementById(id).classList.add('hidden'));
-            mainIframe.src = ''; playlistSidebar.classList.add('hidden'); playlistToggleBtn.classList.add('hidden');
-            document.getElementById('iframe-error').classList.add('hidden');
-
-            if (viewId === 'home') { pageTitle.textContent = 'Dashboard Utama'; document.getElementById('view-home').classList.remove('hidden'); refreshUI(); }
-            else if (viewId === 'settings') { pageTitle.textContent = 'Pengaturan Admin'; document.getElementById('view-settings').classList.remove('hidden'); switchSettingsTab('lms'); refreshUI(); }
-            else if (viewId === 'lms') { 
-                pageTitle.textContent = 'E-Library / LMS'; 
-                document.getElementById('view-lms').classList.remove('hidden'); 
-                renderLMSLibrary(lmsLibraryData);
-            }
-            else if (viewId === 'tasks') {
-                pageTitle.textContent = 'Agenda & Tugas';
-                document.getElementById('view-tasks').classList.remove('hidden');
-                renderTaskList();
-            }
-            // LOGIKA TAMPILAN CBT
-            else if (viewId === 'cbt') {
-                pageTitle.textContent = 'Ujian CBT & Kuis';
-                document.getElementById('view-cbt').classList.remove('hidden');
-                renderCBTList();
-            }
-            else {
-                const menuItem = menus.find(m => m.id === viewId);
-                if (menuItem) {
-                    let cleanTitle = menuItem.title;
-                    if(menuItem.title.includes(':')) cleanTitle = menuItem.title.split(':')[1].trim();
-                    pageTitle.textContent = cleanTitle; 
-                    document.getElementById('view-iframe-wrapper').classList.remove('hidden'); 
-                    
-                    const rawUrl = menuItem.url || "";
-                    playlistUrls = rawUrl.split(',').map(u => u.trim()).filter(u => u !== "");
-                    
-                    if (playlistUrls.length > 1) { 
-                         initPlaylist(playlistUrls); 
-                    } else {
-                        let finalUrl = playlistUrls[0] || "";
-                        if (!isValidUrl(finalUrl)) {
-                            showIframeError(true); 
-                            externalLink.href = "#";
-                        } else {
-                            loader.style.display = 'block'; 
-                            
-                            // LOGIKA AUTO EMBED GOOGLE FORM
-                            if (finalUrl.includes('docs.google.com/forms')) {
-                                if (!finalUrl.includes('embedded=true')) {
-                                    finalUrl += (finalUrl.includes('?') ? '&' : '?') + 'embedded=true';
-                                }
-                            }
-                            // Youtube Embed Logic
-                            else if (finalUrl.includes('youtube.com') || finalUrl.includes('youtu.be')) {
-                                finalUrl = getYoutubeEmbedUrl(finalUrl);
-                            }
-                            
-                            externalLink.href = finalUrl; 
-                            mainIframe.src = finalUrl; 
-                            
-                            mainIframe.onload = () => loader.style.display = 'none'; 
-                            mainIframe.onerror = () => { showIframeError(false); };
-                        }
-                    }
-                }
-            }
-        }
-
-        // --- RENDER CBT LIST ---
-        function renderCBTList() {
-            const container = document.getElementById('cbt-list-container');
-            container.innerHTML = '';
-            
-            // Filter menu dari database khusus yang iconnya adalah 'fa-pen-to-square' (Ujian Online) 
-            // dan masih berstatus aktif
-            const examMenus = menus.filter(m => m.icon === 'fa-pen-to-square');
-
-            if (examMenus.length === 0) {
-                container.innerHTML = `<div class="col-span-full text-center py-10 text-gray-400 bg-white rounded-xl border border-dashed border-gray-300"><i class="fa-solid fa-file-circle-check text-4xl mb-3 opacity-50"></i><p>Belum ada jadwal ujian atau tugas saat ini.</p></div>`;
-                return;
-            }
-
-            examMenus.forEach(exam => {
-                let cleanTitle = exam.title;
-                let mapel = "Ujian Khusus";
-                if(exam.title.includes(':')) {
-                    const parts = exam.title.split(':');
-                    mapel = parts[0].trim();
-                    cleanTitle = parts.slice(1).join(':').trim();
-                }
-
-                // Cek status buka/tutup ujian
-                const statusObj = getMenuTimeStatus(exam);
-                let btnDisable = "";
-                let btnClass = "bg-blue-600 hover:bg-blue-700 text-white";
-                let btnText = "<i class='fa-solid fa-laptop-code'></i> Kerjakan Sekarang";
-
-                if (statusObj.code === 'not_open_yet') {
-                    btnDisable = "disabled";
-                    btnClass = "bg-gray-300 text-gray-600 cursor-not-allowed";
-                    btnText = "<i class='fa-solid fa-lock'></i> " + statusObj.label;
-                } else if (statusObj.code === 'closed' || statusObj.code === 'manual_inactive') {
-                    btnDisable = "disabled";
-                    btnClass = "bg-red-100 text-red-600 cursor-not-allowed";
-                    btnText = "<i class='fa-solid fa-circle-xmark'></i> " + (statusObj.code === 'closed' ? statusObj.label : 'Ujian Ditutup');
-                }
-
-                container.innerHTML += `
-                    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition group relative flex flex-col h-full border-t-4 border-t-blue-600">
-                        <div class="flex justify-between items-start mb-3">
-                            <span class="bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded font-bold">${mapel}</span>
-                            ${statusObj.isActive ? '<span class="flex h-3 w-3 relative"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span><span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span></span>' : ''}
-                        </div>
-                        <h3 class="font-bold text-slate-800 text-lg mb-4 line-clamp-2">${cleanTitle}</h3>
-                        <div class="mt-auto">
-                            <button ${btnDisable} onclick="switchView('${exam.id}')" class="w-full ${btnClass} text-sm py-2.5 rounded-lg font-bold transition-all flex items-center justify-center gap-2">
-                                ${btnText}
-                            </button>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        function renderLMSLibrary(data) {
-            const grid = document.getElementById('lms-file-grid');
-            grid.innerHTML = '';
-            
-            if (data.length === 0) {
-                grid.innerHTML = `<div class="col-span-full text-center py-10 text-gray-400"><i class="fa-solid fa-folder-open text-4xl mb-2"></i><p>Belum ada materi tersedia.</p></div>`;
-                return;
-            }
-
-            data.forEach(item => {
-                grid.innerHTML += `
-                    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition group relative">
-                        <div class="flex justify-between mb-2">
-                            <span class="bg-blue-50 text-blue-600 text-xs px-2 py-1 rounded font-bold">${item.kelas}</span>
-                            <span class="text-xs text-slate-400">${new Date(item.date).toLocaleDateString()}</span>
-                        </div>
-                        <h3 class="font-bold text-slate-800 mb-4 line-clamp-2 group-hover:text-blue-600 transition" title="${item.name}">${item.name}</h3>
-                        <div class="flex gap-2">
-                            <button onclick="openPreview('${item.url}', '${item.name}')" class="flex-1 bg-slate-800 text-white text-sm py-2 rounded-lg font-bold hover:bg-slate-900 transition-all flex items-center justify-center gap-2">
-                                <i class="fa-solid fa-eye"></i> Baca
-                            </button>
-                            <a href="${item.downloadUrl}" target="_blank" class="px-3 py-2 border rounded-lg hover:bg-slate-50 text-slate-500 flex items-center justify-center">
-                                <i class="fa-solid fa-download"></i>
-                            </a>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        function filterLMSMateri(category) {
-            if(category === 'Semua') {
-                renderLMSLibrary(lmsLibraryData);
-            } else {
-                const filtered = lmsLibraryData.filter(item => item.kelas === category);
-                renderLMSLibrary(filtered);
-            }
-            const btns = document.querySelectorAll('.filter-btn');
-            btns.forEach(btn => {
-                if(btn.textContent === category) {
-                    btn.className = "filter-btn px-4 py-1.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200";
-                } else {
-                    btn.className = "filter-btn px-4 py-1.5 rounded-full text-xs font-medium bg-white text-gray-600 border hover:bg-gray-50";
-                }
-            });
-        }
-
-        function openPreview(url, title) {
-            document.getElementById('preview-title').textContent = title;
-            if(!isValidUrl(url)) {
-                 Swal.fire({ icon: 'error', title: 'Link Rusak', text: 'File ini tidak memiliki URL yang valid (404).' });
-                 return;
-            }
-            document.getElementById('preview-frame').src = url;
-            document.getElementById('pdf-viewer-modal').classList.remove('hidden');
-        }
-
-        function closePreview() {
-            document.getElementById('pdf-viewer-modal').classList.add('hidden');
-            document.getElementById('preview-frame').src = '';
-        }
-
-        // --- LMS ADMIN LOGIC (CRUD FILES) ---
-        function renderLMSAdminTable() {
-            const tbody = document.getElementById('lms-admin-table-body');
-            tbody.innerHTML = '';
-            lmsLibraryData.forEach(item => {
-                tbody.innerHTML += `
-                    <tr class="hover:bg-slate-50">
-                        <td class="px-4 py-3 font-medium text-slate-700">${item.name}</td>
-                        <td class="px-4 py-3"><span class="bg-gray-100 px-2 py-1 rounded text-xs text-gray-600">${item.kelas}</span></td>
-                        <td class="px-4 py-3 text-right">
-                            <button onclick="openRenameModal('${item.id}', '${item.name}')" class="text-orange-500 hover:text-orange-700 p-2 rounded mr-1" title="Rename"><i class="fa-solid fa-pen-to-square"></i></button>
-                            <button onclick="deleteLMSFile('${item.id}')" class="text-red-600 hover:bg-red-50 p-2 rounded transition-colors" title="Delete"><i class="fa-solid fa-trash"></i></button>
-                        </td>
-                    </tr>
-                `;
-            });
-        }
-
-        // --- RENAME FILE LOGIC ---
-        function openRenameModal(id, currentName) {
-            let cleanName = currentName.replace(/\.pdf$/i, "");
-            document.getElementById('rename-file-id').value = id;
-            document.getElementById('rename-file-name').value = cleanName;
-            document.getElementById('rename-modal').classList.remove('hidden');
-        }
-
-        function closeRenameModal() {
-            document.getElementById('rename-modal').classList.add('hidden');
-        }
-
-        function handleRenameFile(e) {
-            e.preventDefault();
-            const id = document.getElementById('rename-file-id').value;
-            const newName = document.getElementById('rename-file-name').value.trim();
-
-            if(!newName) return;
-
-            closeRenameModal();
-            Swal.fire({ title: 'Menyimpan...', didOpen: () => Swal.showLoading() });
-
-            fetch(GOOGLE_SCRIPT_URL, {
-                method: 'POST',
-                body: JSON.stringify({ action: 'renameLMSFile', id: id, newName: newName })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if(data.status === 'success') {
-                    Swal.fire('Sukses', 'Nama file berhasil diubah.', 'success');
-                    fetchLMSLibrary();
-                } else {
-                    Swal.fire('Error', data.message, 'error');
-                }
-            })
-            .catch(err => Swal.fire('Error', 'Gagal koneksi: ' + err, 'error'));
-        }
-
-        // --- UPLOAD LOGIC ---
-        function handleLMSUpload(e) {
-            e.preventDefault();
-            const file = document.getElementById('lms-upload-file').files[0];
-            const kelas = document.getElementById('lms-upload-class').value;
-            
-            if(!file) { Swal.fire('Error', 'Pilih file PDF!', 'warning'); return; }
-            if(!kelas) { Swal.fire('Error', 'Pilih kelas tujuan!', 'warning'); return; }
-
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = async function () {
-                const base64Content = reader.result.split(',')[1]; 
+            if (currentSelectedExam) {
+                // Update text di layar welcome
+                document.getElementById('ws-duration').textContent = currentSelectedExam.durationMinutes;
                 
-                Swal.fire({
-                    title: 'Mengupload ke Drive...',
-                    text: 'Mohon tunggu...',
-                    allowOutsideClick: false,
-                    didOpen: () => Swal.showLoading()
-                });
-
-                try {
-                    const response = await fetch(GOOGLE_SCRIPT_URL, {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            action: 'uploadLMSFile',
-                            fileData: base64Content,
-                            fileName: file.name,
-                            mimeType: file.type,
-                            kelas: kelas
-                        })
-                    });
-                    const result = await response.json();
-
-                    if (result.status === 'success') {
-                        Swal.fire('Sukses', 'File berhasil diupload!', 'success');
-                        document.getElementById('lms-upload-form').reset();
-                        fetchLMSLibrary(); 
-                    } else {
-                        throw new Error(result.message);
-                    }
-                } catch (err) {
-                    console.error(err);
-                    Swal.fire('Gagal', 'Terjadi kesalahan saat upload: ' + err.message, 'error');
+                // Cek apakah butuh token
+                if (currentSelectedExam.examToken && currentSelectedExam.examToken.trim() !== "") {
+                    tokenContainer.classList.remove('hidden');
+                } else {
+                    tokenContainer.classList.add('hidden');
                 }
-            };
+            } else {
+                // Jika belum memilih
+                document.getElementById('ws-duration').textContent = "0";
+                tokenContainer.classList.add('hidden');
+            }
         }
 
-        function deleteLMSFile(id) {
-            Swal.fire({ title: 'Hapus file ini?', text: 'File akan dipindah ke sampah Google Drive', icon: 'warning', showCancelButton: true, confirmButtonText: 'Ya, Hapus', confirmButtonColor: '#d33' })
-            .then(async (result) => {
-                if (result.isConfirmed) {
-                    Swal.fire({ title: 'Menghapus...', didOpen: () => Swal.showLoading() });
-                    try {
-                        const response = await fetch(GOOGLE_SCRIPT_URL, {
-                            method: 'POST',
-                            body: JSON.stringify({ action: 'deleteLMSFile', id: id })
-                        });
-                        const resData = await response.json();
-                        
-                        if(resData.status === 'success') {
-                            Swal.fire('Terhapus', 'File berhasil dihapus.', 'success');
-                            fetchLMSLibrary(); // Refresh
-                        } else {
-                            throw new Error(resData.message);
-                        }
-                    } catch(err) {
-                         Swal.fire('Gagal', 'Tidak dapat menghapus file: ' + err.message, 'error');
-                    }
-                }
-            });
-        }
-
-        // --- STANDARD UTILS ---
-        function getMenuTimeStatus(menu) {
-            const manualStatus = menu.status ? menu.status.toString().toLowerCase() : 'active';
-            if (manualStatus === 'inactive') return { code: 'manual_inactive', label: 'Non-Aktif', color: 'gray', isActive: false };
-
-            const now = new Date();
-            const currentTotalMinutes = (now.getHours() * 60) + now.getMinutes();
-            const timeToMinutes = (timeStr) => {
-                if (!timeStr || typeof timeStr !== 'string' || !timeStr.includes(':')) return null;
-                const [h, m] = timeStr.split(':').map(Number);
-                if (isNaN(h) || isNaN(m)) return null; 
-                return (h * 60) + m;
-            };
-
-            if (menu.auto_open && menu.auto_open.trim() !== "") {
-                const openMins = timeToMinutes(menu.auto_open);
-                if (openMins !== null && currentTotalMinutes < openMins) return { code: 'not_open_yet', label: `Buka ${menu.auto_open}`, color: 'yellow', isActive: false };
+        function startExam() {
+            if (!currentSelectedExam) {
+                alert("Silakan pilih ujian terlebih dahulu pada dropdown!");
+                return;
             }
 
-            if (menu.auto_close && menu.auto_close.trim() !== "") {
-                const closeMins = timeToMinutes(menu.auto_close);
-                if (closeMins !== null && currentTotalMinutes >= closeMins) return { code: 'closed', label: `Tutup ${menu.auto_close}`, color: 'red', isActive: false };
-            }
-            return { code: 'active', label: 'Aktif', color: 'green', isActive: true };
-        }
-
-        function getYoutubeEmbedUrl(url) {
-            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-            const match = url.match(regExp);
-            return (match && match[2].length === 11) ? 'https://www.youtube.com/embed/' + match[2] + '?autoplay=1&rel=0' : url;
-        }
-
-        function getYoutubeThumbnail(url) {
-            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-            const match = url.match(regExp);
-            return (match && match[2].length === 11) ? `https://img.youtube.com/vi/${match[2]}/mqdefault.jpg` : 'https://via.placeholder.com/120x90?text=Video';
-        }
-
-        function renderSidebar() {
-            sidebarMenuContainer.innerHTML = '';
-            menus.forEach(menu => {
-                const statusObj = getMenuTimeStatus(menu);
-                // Hanya render menu yang aktif atau jika dia adalah menu biasa (bukan khusus list CBT)
-                // Filter out menu CBT dari sidebar dinamis karena kita sudah punya "view-cbt" khusus
-                if (!statusObj.isActive || menu.icon === 'fa-pen-to-square') return; 
-
-                const btn = document.createElement('button');
-                btn.id = `btn-${menu.id}`;
-                btn.className = 'nav-item w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-slate-800 transition-colors';
-                btn.onclick = () => switchView(menu.id);
-                btn.innerHTML = `<i class="fa-solid ${menu.icon} w-5 text-center text-slate-400 transition-colors"></i><span class="text-sm font-medium text-left truncate">${menu.title}</span>`;
-                sidebarMenuContainer.appendChild(btn);
-            });
-        }
-
-        function renderHome() {
-            homeCardsContainer.innerHTML = '';
-            
-            // 1. Render LMS Card jika setting active
-            if (appSettings.lms_feature_status !== 'inactive') {
-                const lmsCard = document.createElement('div');
-                lmsCard.className = `bg-gradient-to-br from-indigo-600 to-blue-700 rounded-xl p-6 text-white shadow-lg cursor-pointer transform hover:scale-105 transition-transform flex flex-col h-full border border-indigo-500`;
-                lmsCard.onclick = () => switchView('lms');
-                lmsCard.innerHTML = `
-                    <div class="flex justify-between items-start mb-4">
-                        <div class="bg-white/20 p-3 rounded-lg flex-shrink-0 backdrop-blur-sm">
-                            <i class="fa-solid fa-book-open text-2xl"></i>
-                        </div>
-                        <div class="bg-black/20 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">Perpustakaan</div>
-                    </div>
-                    <div class="mt-auto">
-                        <p class="text-indigo-100 text-xs font-bold uppercase tracking-wider mb-1 opacity-80">E-Library</p>
-                        <h3 class="text-lg font-bold leading-tight line-clamp-2">Akses Materi & E-Book</h3>
-                    </div>
-                    <div class="mt-4 flex items-center text-xs opacity-75">
-                        <span><i class="fa-solid fa-arrow-right mr-1"></i> Buka Pustaka</span>
-                    </div>`;
-                homeCardsContainer.appendChild(lmsCard);
-            }
-
-            // 2. Render Menu Dinamis Lainnya
-            let timeRestrictedCount = 0;
-            menus.forEach(menu => {
-                const statusObj = getMenuTimeStatus(menu);
-                if (!statusObj.isActive) {
-                    if (statusObj.code === 'not_open_yet' || statusObj.code === 'closed') timeRestrictedCount++;
+            // Verifikasi Token Jika Diaktifkan untuk Ujian Terpilih
+            if (currentSelectedExam.examToken && currentSelectedExam.examToken.trim() !== "") {
+                const enteredToken = document.getElementById('student-token').value.trim().toUpperCase();
+                if (enteredToken !== currentSelectedExam.examToken.toUpperCase()) {
+                    document.getElementById('token-error').classList.remove('hidden');
+                    document.getElementById('student-token').classList.add('border-red-500');
                     return; 
                 }
+            }
 
-                // Sembunyikan item Ujian dari HomeCards karena sudah ada tab CBT khusus
-                if(menu.icon === 'fa-pen-to-square') return;
+            // Persiapkan Data di Exam Screen
+            document.getElementById('es-title').textContent = currentSelectedExam.title;
+            timeRemaining = currentSelectedExam.durationMinutes * 60;
+            
+            // Set sumber iframe (Pastikan ada parameter embedded)
+            let finalUrl = currentSelectedExam.formUrl;
+            if (!finalUrl.includes('embedded=true') && finalUrl.includes('viewform')) {
+                finalUrl += (finalUrl.includes('?') ? '&' : '?') + 'embedded=true';
+            }
+            document.getElementById('gform-iframe').src = finalUrl;
+            document.getElementById('loading-indicator').style.display = 'flex'; // Reset loader
 
-                const gradient = gradients[menu.color] || gradients.blue;
-                const textColor = textColors[menu.color] || textColors.blue;
-                let displayTitle = menu.title, displaySubtitle = "Menu Utama", tag = "";
-                if(menu.title.includes(":")) {
-                    const parts = menu.title.split(":");
-                    if(parts.length >= 2) { displaySubtitle = parts[0].trim(); displayTitle = parts.slice(1).join(":").trim(); tag = `<span class="ml-2 text-[10px] bg-white/20 px-1.5 py-0.5 rounded text-white opacity-80">${displaySubtitle}</span>`; }
+            // Coba masuk mode fullscreen
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen().catch(e => {});
+            } else if (elem.webkitRequestFullscreen) {
+                elem.webkitRequestFullscreen();
+            }
+
+            // Pindah Layar
+            document.getElementById('welcome-screen').classList.add('hidden');
+            document.getElementById('exam-screen').classList.remove('hidden');
+            document.getElementById('exam-screen').classList.add('flex');
+            
+            isExamActive = true;
+            violations = 0;
+            document.getElementById('violation-count').textContent = "0";
+            document.getElementById('violation-badge').classList.add('hidden');
+            
+            // Jalankan Timer
+            document.getElementById('timer-display').textContent = formatTime(timeRemaining);
+            document.getElementById('timer-display').className = "text-lg md:text-xl font-mono font-bold text-gray-800"; // reset class
+
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                document.getElementById('timer-display').textContent = formatTime(timeRemaining);
+
+                if (timeRemaining <= 300) {
+                    const timerDisplay = document.getElementById('timer-display');
+                    timerDisplay.classList.remove('text-gray-800');
+                    timerDisplay.classList.add('text-red-600', 'animate-pulse');
                 }
-                const card = document.createElement('div');
-                card.className = `bg-gradient-to-br ${gradient} rounded-xl p-6 text-white shadow-lg cursor-pointer transform hover:scale-105 transition-transform flex flex-col h-full`;
-                card.onclick = () => switchView(menu.id);
-                card.innerHTML = `<div class="flex justify-between items-start mb-4"><div class="bg-white/20 p-3 rounded-lg flex-shrink-0 backdrop-blur-sm"><i class="fa-solid ${menu.icon} text-2xl"></i></div>${tag ? `<div class="bg-black/10 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">${displaySubtitle}</div>` : ''}</div><div class="mt-auto"><p class="${textColor} text-xs font-bold uppercase tracking-wider mb-1 opacity-80">${!tag ? displaySubtitle : 'Materi Pembelajaran'}</p><h3 class="text-lg font-bold leading-tight line-clamp-2">${displayTitle}</h3></div><div class="mt-4 flex items-center text-xs opacity-75"><span><i class="fa-solid fa-arrow-right mr-1"></i> Buka Materi</span></div>`;
-                homeCardsContainer.appendChild(card);
-            });
-            curfewBanner.classList.toggle('hidden', timeRestrictedCount === 0);
-            
-            const annList = document.getElementById('announcement-list');
-            annList.innerHTML = '';
-            if(announcements.length === 0) annList.innerHTML = '<div class="text-center text-gray-500 py-4">Belum ada pengumuman.</div>';
-            announcements.forEach(item => {
-                let colorClass = 'bg-blue-100 text-blue-600', icon = 'fa-bullhorn';
-                if (item.type === 'warning') { colorClass = 'bg-orange-100 text-orange-600'; icon = 'fa-triangle-exclamation'; }
-                if (item.type === 'urgent') { colorClass = 'bg-red-100 text-red-600'; icon = 'fa-circle-exclamation'; }
-                const div = document.createElement('div');
-                div.className = 'flex gap-4 items-start p-2 rounded-lg hover:bg-gray-50 transition-colors';
-                div.innerHTML = `<div class="w-12 h-12 rounded-full ${colorClass} flex items-center justify-center flex-shrink-0"><i class="fa-solid ${icon}"></i></div><div><h4 class="font-semibold text-gray-800">${item.title}</h4><p class="text-sm text-gray-600 mt-1">${item.content}</p><span class="text-xs text-gray-400 mt-2 block"><i class="fa-regular fa-clock mr-1"></i> ${timeAgo(item.time)}</span></div>`;
-                annList.appendChild(div);
-            });
-        }
 
-        function togglePlaylist() {
-            const sidebar = document.getElementById('playlist-sidebar');
-            const icon = document.getElementById('playlist-toggle-icon');
-            if (sidebar.classList.contains('hidden')) { sidebar.classList.remove('hidden'); icon.classList.remove('fa-expand'); icon.classList.add('fa-list'); } 
-            else { sidebar.classList.add('hidden'); icon.classList.remove('fa-list'); icon.classList.add('fa-expand'); }
-        }
-
-        function initPlaylist(urls) {
-            playlistSidebar.classList.remove('hidden'); playlistToggleBtn.classList.remove('hidden');
-            const icon = document.getElementById('playlist-toggle-icon'); icon.classList.remove('fa-expand'); icon.classList.add('fa-list');
-            playlistItems.innerHTML = ''; activeVideoIndex = 0; playlistCounter.textContent = `1/${urls.length}`;
-            urls.forEach((url, index) => {
-                let thumbnail = 'https://via.placeholder.com/120x90?text=Video';
-                if (url.includes('youtube.com') || url.includes('youtu.be')) thumbnail = getYoutubeThumbnail(url);
-                const item = document.createElement('div');
-                item.className = `playlist-item cursor-pointer p-3 flex gap-3 items-center border-b border-gray-100 ${index === 0 ? 'active' : ''}`;
-                item.onclick = () => loadPlaylistVideo(index);
-                item.innerHTML = `<div class="relative w-24 h-16 bg-gray-200 rounded overflow-hidden flex-shrink-0 group"><img src="${thumbnail}" class="w-full h-full object-cover transition-transform group-hover:scale-110"><div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 flex items-center justify-center transition-colors icon-play opacity-0 group-hover:opacity-100"><i class="fa-solid fa-play text-white drop-shadow-md text-sm"></i></div></div><div class="flex-1 min-w-0"><p class="text-sm text-gray-700 truncate title">Materi Bagian ${index + 1}</p><p class="text-[10px] text-gray-400 mt-1 uppercase tracking-wide">Video Pembelajaran</p></div>`;
-                playlistItems.appendChild(item);
-            });
-            loadPlaylistVideo(0); 
-        }
-
-        function loadPlaylistVideo(index) {
-            activeVideoIndex = index;
-            let url = playlistUrls[index];
-            document.querySelectorAll('.playlist-item').forEach((btn, idx) => { if (idx === index) btn.classList.add('active'); else btn.classList.remove('active'); });
-            playlistCounter.textContent = `${index + 1}/${playlistUrls.length}`;
-            if (window.innerWidth < 768) togglePlaylist(); 
-            
-            document.getElementById('iframe-error').classList.add('hidden'); // Reset error
-            if (!isValidUrl(url)) {
-                 showIframeError(true);
-                 externalLink.href = "#";
-                 loader.style.display = 'none';
-                 return;
-            }
-
-            loader.style.display = 'block';
-            
-            // Logika Embed URL Youtube & Google Form di Playlist
-            if (url.includes('docs.google.com/forms')) {
-                if (!url.includes('embedded=true')) {
-                    url += (url.includes('?') ? '&' : '?') + 'embedded=true';
+                if (timeRemaining <= 0) {
+                    endExam("Waktu Anda telah habis!", CONFIG.finishMessage);
                 }
-            } else if (url.includes('youtube.com') || url.includes('youtu.be')) {
-                url = getYoutubeEmbedUrl(url);
+            }, 1000);
+        }
+
+        // ================= FITUR ADMIN & CRUD =================
+        function promptAdmin() {
+            const modal = document.getElementById('password-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            const inputField = document.getElementById('admin-password-input');
+            inputField.value = '';
+            document.getElementById('password-error').classList.add('hidden');
+            setTimeout(() => inputField.focus(), 100);
+        }
+
+        function closePasswordModal() {
+            const modal = document.getElementById('password-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function verifyPassword() {
+            const pwd = document.getElementById('admin-password-input').value;
+            if (pwd === CONFIG.adminPassword) {
+                closePasswordModal();
+                openAdmin();
+            } else {
+                document.getElementById('password-error').classList.remove('hidden');
             }
-
-            mainIframe.src = url; externalLink.href = playlistUrls[index]; 
-            mainIframe.onload = () => loader.style.display = 'none';
-            mainIframe.onerror = () => { showIframeError(false); };
         }
 
-        function closePasswordModal() { document.getElementById('password-modal').classList.add('hidden'); }
-        
-        function switchSettingsTab(tabName) { 
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); 
-            document.getElementById(`tab-btn-${tabName}`).classList.add('active'); 
-            // Sembunyikan semua konten tab di settings
-            ['tab-content-menu', 'tab-content-announcement', 'tab-content-lms', 'tab-content-app', 'tab-content-lms-admin'].forEach(id => {
-                const el = document.getElementById(id);
-                if(el) el.classList.add('hidden');
-            });
-            
-            // Tampilkan tab yang dipilih
-            const targetContent = document.getElementById(`tab-content-${tabName}`);
-            if(targetContent) targetContent.classList.remove('hidden');
+        document.getElementById('admin-password-input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') verifyPassword();
+        });
 
-            // Khusus tab admin E-Library, refresh tabelnya
-            if (tabName === 'lms-admin') {
-                renderLMSAdminTable();
-                updateClassDropdowns();
+        function openAdmin() {
+            document.getElementById('welcome-screen').classList.add('hidden');
+            document.getElementById('admin-screen').classList.remove('hidden');
+            document.getElementById('admin-screen').classList.add('flex');
+            
+            // Populate General Settings
+            document.getElementById('admin-school').value = CONFIG.schoolName;
+            document.getElementById('admin-strict').value = CONFIG.strictMode.toString();
+            document.getElementById('admin-max-violations').value = CONFIG.maxViolations;
+            document.getElementById('admin-password-set').value = CONFIG.adminPassword;
+            document.getElementById('admin-finish-msg').value = CONFIG.finishMessage;
+
+            renderAdminTable();
+        }
+
+        function closeAdmin() {
+            document.getElementById('admin-screen').classList.add('hidden');
+            document.getElementById('admin-screen').classList.remove('flex');
+            document.getElementById('welcome-screen').classList.remove('hidden');
+            initPortalUI(); // Refresh welcome screen
+        }
+
+        function saveGlobalSettings() {
+            CONFIG.schoolName = document.getElementById('admin-school').value;
+            CONFIG.strictMode = document.getElementById('admin-strict').value === "true";
+            
+            const rawVio = parseInt(document.getElementById('admin-max-violations').value);
+            CONFIG.maxViolations = isNaN(rawVio) ? 3 : Math.max(0, rawVio);
+            
+            CONFIG.adminPassword = document.getElementById('admin-password-set').value || "112233";
+            CONFIG.finishMessage = document.getElementById('admin-finish-msg').value;
+
+            saveData();
+            alert("Pengaturan Umum berhasil disimpan!");
+        }
+
+        // --- CRUD LOGIC ---
+        function renderAdminTable() {
+            const tbody = document.getElementById('admin-exam-list');
+            const emptyMsg = document.getElementById('empty-exam-msg');
+            tbody.innerHTML = '';
+
+            if (!CONFIG.exams || CONFIG.exams.length === 0) {
+                emptyMsg.classList.remove('hidden');
+                return;
             }
-        }
+            emptyMsg.classList.add('hidden');
 
-        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('-translate-x-full'); document.getElementById('mobile-overlay').classList.toggle('hidden'); }
-        function toggleFullscreen() { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else if (document.exitFullscreen) document.exitFullscreen(); }
-        function updateClock() { const now = new Date(); document.getElementById('digital-clock').textContent = now.toLocaleTimeString('id-ID', { hour12: false }); document.getElementById('current-date').textContent = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' }); }
-        
-        // --- FORM SAVERS ---
-        function saveMenu(e) {
-            e.preventDefault();
-            const titleInput = document.getElementById('menu-title');
-            const urlInput = document.getElementById('menu-url');
-            if (!titleInput.value.trim() || !urlInput.value.trim()) { Swal.fire({ icon: 'warning', title: 'Data Belum Lengkap', text: 'Nama Menu dan URL wajib diisi!' }); return; }
-            const data = {
-                id: document.getElementById('menu-edit-id').value || 'menu_' + Date.now(),
-                title: titleInput.value.trim(),
-                url: urlInput.value.trim(), 
-                icon: document.getElementById('menu-icon').value,
-                color: document.getElementById('menu-color').value,
-                status: document.getElementById('menu-status').value,
-                auto_close: document.getElementById('menu-auto-close').value, 
-                auto_open: document.getElementById('menu-auto-open').value 
-            };
-            sendToDatabase('saveMenu', { data: data });
-            resetMenuForm();
-        }
-
-        function saveLMS(e) {
-            e.preventDefault();
-            const subject = document.getElementById('lms-subject').value.trim();
-            const topic = document.getElementById('lms-topic').value.trim();
-            const urlValue = document.getElementById('lms-url').value.trim();
-            if (!subject || !topic || !urlValue) { Swal.fire({ icon: 'warning', title: 'Data Kurang', text: 'Lengkapi form!' }); return; }
-            const combinedTitle = `${subject}: ${topic}`;
-            let iconClass = 'fa-book';
-            if (document.getElementById('lms-type').value === 'video') iconClass = 'fa-video';
-            if (document.getElementById('lms-type').value === 'exam') iconClass = 'fa-pen-to-square';
-            let colorVal = document.getElementById('lms-color').value;
-            if (colorVal === 'auto') { const colors = ['blue', 'green', 'purple', 'orange', 'red']; colorVal = colors[subject.length % colors.length]; }
-            const data = {
-                id: document.getElementById('lms-edit-id').value || 'lms_' + Date.now(),
-                title: combinedTitle, url: urlValue, icon: iconClass, color: colorVal,
-                status: document.getElementById('lms-status').value,
-                auto_close: document.getElementById('lms-auto-close').value,
-                auto_open: document.getElementById('lms-auto-open').value,
-            };
-            sendToDatabase('saveMenu', { data: data });
-            resetLMSForm();
-        }
-
-        function deleteMenu(id) { Swal.fire({ title: 'Hapus?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33' }).then((r) => { if (r.isConfirmed) sendToDatabase('deleteMenu', { id: id }); }); }
-        
-        function saveAnnouncement(e) { 
-            e.preventDefault(); 
-            const editId = document.getElementById('ann-edit-id').value;
-            
-            let timestamp = document.getElementById('ann-time').value;
-            if (!timestamp || !editId) {
-                timestamp = new Date().toISOString(); 
-            }
-
-            const data = { 
-                id: editId || Date.now(), 
-                title: document.getElementById('ann-title').value, 
-                content: document.getElementById('ann-content').value, 
-                type: document.getElementById('ann-type').value, 
-                time: timestamp 
-            }; 
-            
-            sendToDatabase('saveAnnouncement', { data: data }); 
-            
-            document.getElementById('ann-edit-id').value = ''; 
-            document.getElementById('ann-time').value = ''; 
-            document.getElementById('ann-title').value = ''; 
-            document.getElementById('ann-content').value = ''; 
-        }
-
-        function deleteAnnouncement(id) { Swal.fire({ title: 'Hapus?', icon: 'warning', showCancelButton: true }).then((r) => { if(r.isConfirmed) sendToDatabase('deleteAnnouncement', { id: id }); }); }
-
-        function renderLMSList() {
-            const list = document.getElementById('settings-lms-list'); const search = document.getElementById('lms-search').value.toLowerCase(); list.innerHTML = '';
-            const lmsItems = menus.filter(m => m.title.includes(':') || m.id.startsWith('lms_'));
-            if(lmsItems.length === 0) { list.innerHTML = '<div class="p-8 text-center text-gray-400"><p>Belum ada materi.</p></div>'; return; }
-            lmsItems.forEach(menu => {
-                if (search && !menu.title.toLowerCase().includes(search)) return;
-                const parts = menu.title.includes(':') ? menu.title.split(':') : ['Umum', menu.title];
-                const statusObj = getMenuTimeStatus(menu);
-                let statusColor = statusObj.isActive ? 'text-green-600 bg-green-50' : 'text-gray-500 bg-gray-100';
-                list.innerHTML += `<div class="p-4 flex justify-between items-center hover:bg-white transition-colors gap-3"><div class="flex items-start gap-3 w-full"><div class="w-10 h-10 rounded-lg bg-${menu.color}-100 flex items-center justify-center text-${menu.color}-600 flex-shrink-0 mt-1"><i class="fa-solid ${menu.icon}"></i></div><div class="min-w-0"><div class="flex items-center gap-2 mb-0.5"><span class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-gray-200 text-gray-600">${parts[0].trim()}</span><span class="text-[10px] px-1.5 py-0.5 rounded ${statusColor}">${statusObj.label}</span></div><h4 class="font-bold text-gray-800 text-sm truncate">${parts.slice(1).join(':').trim()}</h4><p class="text-xs text-gray-400 truncate max-w-[200px]">${menu.url}</p></div></div><div class="flex gap-2"><button onclick="editLMS('${menu.id}')" class="px-3 py-1.5 bg-yellow-50 text-yellow-700 rounded-lg text-xs font-medium border border-yellow-200">Edit</button><button onclick="deleteMenu('${menu.id}')" class="px-3 py-1.5 bg-red-50 text-red-700 rounded-lg text-xs font-medium border border-red-200">Hapus</button></div></div>`;
+            CONFIG.exams.forEach((exam, index) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-gray-50 transition";
+                tr.innerHTML = `
+                    <td class="p-3 border-b text-center">${index + 1}</td>
+                    <td class="p-3 border-b font-medium text-gray-800 truncate max-w-[200px]" title="${exam.title}">${exam.title}</td>
+                    <td class="p-3 border-b text-center">${exam.durationMinutes} m</td>
+                    <td class="p-3 border-b text-center"><span class="${exam.examToken ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'} px-2 py-1 rounded text-xs font-mono">${exam.examToken || 'Tidak Ada'}</span></td>
+                    <td class="p-3 border-b text-center">
+                        <button onclick="editCrudExam(${exam.id})" class="text-blue-500 hover:text-blue-700 mx-1" title="Edit"><i class="fas fa-edit"></i></button>
+                        <button onclick="deleteCrudExam(${exam.id})" class="text-red-500 hover:text-red-700 mx-1" title="Hapus"><i class="fas fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
             });
         }
 
-        function renderMenuSettingsList() {
-            const list = document.getElementById('settings-menu-list'); list.innerHTML = '';
-            const basicMenus = menus.filter(m => !m.title.includes(':') && !m.id.startsWith('lms_'));
-            basicMenus.forEach(menu => {
-                const statusObj = getMenuTimeStatus(menu);
-                let statusBadge = statusObj.isActive ? '<span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700 font-bold">Aktif</span>' : '<span class="px-2 py-1 text-xs rounded-full bg-gray-200 text-gray-600">Non-Aktif</span>';
-                list.innerHTML += `<div class="p-4 flex justify-between items-center hover:bg-gray-50 gap-4"><div class="flex items-center gap-4 w-full"><div class="w-10 h-10 rounded bg-gray-100 flex items-center justify-center text-gray-600 flex-shrink-0"><i class="fa-solid ${menu.icon}"></i></div><div class="min-w-0"><h4 class="font-bold text-gray-800 truncate">${menu.title}</h4>${statusBadge}</div></div><div class="flex gap-2 shrink-0"><button onclick="editMenu('${menu.id}')" class="px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded text-sm font-medium">Edit</button><button onclick="deleteMenu('${menu.id}')" class="px-3 py-1.5 bg-red-100 text-red-700 rounded text-sm font-medium">Hapus</button></div></div>`;
-            });
-        }
-        function renderAnnouncementSettingsList() {
-            const list = document.getElementById('settings-ann-list'); list.innerHTML = '';
-            announcements.forEach(item => { list.innerHTML += `<div class="p-4 flex justify-between items-center hover:bg-gray-50"><div class="mb-2 md:mb-0 w-full"><div class="flex items-center gap-2 mb-1"><span class="px-2 py-0.5 rounded text-xs font-bold uppercase bg-gray-200 text-gray-700">${item.type}</span><h4 class="font-bold text-gray-800">${item.title}</h4></div><p class="text-sm text-gray-600 truncate max-w-xs">${item.content}</p></div><div class="flex gap-2"><button onclick="editAnnouncement(${item.id})" class="text-yellow-600 p-2"><i class="fa-solid fa-pen"></i></button><button onclick="deleteAnnouncement(${item.id})" class="text-red-600 p-2"><i class="fa-solid fa-trash"></i></button></div></div>`; });
+        function openCrudForm(isEdit = false) {
+            document.getElementById('crud-form-container').classList.remove('hidden');
+            if (!isEdit) {
+                document.getElementById('crud-form-title').textContent = "Tambah Ujian Baru";
+                document.getElementById('crud-id').value = "";
+                document.getElementById('crud-title').value = "";
+                document.getElementById('crud-url').value = "";
+                document.getElementById('crud-duration').value = "90";
+                document.getElementById('crud-token').value = "";
+            } else {
+                document.getElementById('crud-form-title').textContent = "Edit Data Ujian";
+            }
+            document.getElementById('crud-title').focus();
         }
 
-        function editMenu(id) {
-            const item = menus.find(m => m.id === id);
-            if(item) { switchSettingsTab('menu'); document.getElementById('menu-edit-id').value = item.id; document.getElementById('menu-title').value = item.title; document.getElementById('menu-url').value = item.url; document.getElementById('menu-icon').value = item.icon; document.getElementById('menu-color').value = item.color; document.getElementById('menu-status').value = item.status; document.getElementById('menu-auto-close').value = item.auto_close; document.getElementById('menu-auto-open').value = item.auto_open; document.getElementById('btn-save-menu').innerHTML = 'Update Menu'; }
+        function closeCrudForm() {
+            document.getElementById('crud-form-container').classList.add('hidden');
         }
-        
-        function editLMS(id) {
-            const item = menus.find(m => m.id === id);
-            if(item) {
-                switchSettingsTab('lms'); document.getElementById('lms-edit-id').value = item.id;
-                let mapel = "Umum", topic = item.title;
-                if(item.title.includes(":")) { const parts = item.title.split(":"); mapel = parts[0].trim(); topic = parts.slice(1).join(":").trim(); }
-                document.getElementById('lms-subject').value = mapel; document.getElementById('lms-topic').value = topic; document.getElementById('lms-url').value = item.url;
-                document.getElementById('lms-status').value = item.status; document.getElementById('lms-auto-close').value = item.auto_close; document.getElementById('lms-auto-open').value = item.auto_open;
-                document.getElementById('btn-save-lms').innerHTML = 'Update Materi';
+
+        function saveCrudExam() {
+            const idVal = document.getElementById('crud-id').value;
+            const title = document.getElementById('crud-title').value.trim();
+            const url = document.getElementById('crud-url').value.trim();
+            const duration = parseInt(document.getElementById('crud-duration').value) || 60;
+            const token = document.getElementById('crud-token').value.toUpperCase().trim();
+
+            if (!title || !url) {
+                alert("Judul Ujian dan URL Google Form wajib diisi!");
+                return;
+            }
+
+            if (idVal) {
+                // Update
+                const idx = CONFIG.exams.findIndex(e => e.id == idVal);
+                if(idx > -1) {
+                    CONFIG.exams[idx].title = title;
+                    CONFIG.exams[idx].formUrl = url;
+                    CONFIG.exams[idx].durationMinutes = duration;
+                    CONFIG.exams[idx].examToken = token;
+                }
+            } else {
+                // Tambah Baru
+                if(!CONFIG.exams) CONFIG.exams = [];
+                CONFIG.exams.push({
+                    id: Date.now(),
+                    title: title,
+                    formUrl: url,
+                    durationMinutes: duration,
+                    examToken: token
+                });
+            }
+
+            saveData();
+            closeCrudForm();
+            renderAdminTable();
+        }
+
+        function editCrudExam(id) {
+            const exam = CONFIG.exams.find(e => e.id === id);
+            if (exam) {
+                openCrudForm(true);
+                document.getElementById('crud-id').value = exam.id;
+                document.getElementById('crud-title').value = exam.title;
+                document.getElementById('crud-url').value = exam.formUrl;
+                document.getElementById('crud-duration').value = exam.durationMinutes;
+                document.getElementById('crud-token').value = exam.examToken;
             }
         }
-        function editAnnouncement(id) { 
-            const item = announcements.find(a => a.id == id); 
-            if(item) { 
-                document.getElementById('ann-edit-id').value = item.id; 
-                document.getElementById('ann-title').value = item.title; 
-                document.getElementById('ann-content').value = item.content; 
-                document.getElementById('ann-type').value = item.type; 
-                document.getElementById('ann-time').value = item.time; 
-                document.getElementById('btn-save-ann').innerHTML = 'Update Pengumuman'; 
-            } 
+
+        function deleteCrudExam(id) {
+            if (confirm("Yakin ingin menghapus ujian ini? Data yang dihapus tidak bisa dikembalikan.")) {
+                CONFIG.exams = CONFIG.exams.filter(e => e.id !== id);
+                saveData();
+                renderAdminTable();
+            }
         }
-        function resetMenuForm() { document.getElementById('menu-edit-id').value = ''; document.getElementById('menu-title').value = ''; document.getElementById('menu-url').value = ''; document.getElementById('menu-status').value = 'active'; document.getElementById('menu-auto-close').value = ''; document.getElementById('menu-auto-open').value = ''; document.getElementById('btn-save-menu').innerHTML = '<i class="fa-solid fa-plus mr-2"></i> Simpan ke Database'; }
-        function resetLMSForm() { document.getElementById('lms-edit-id').value = ''; document.getElementById('lms-subject').value = ''; document.getElementById('lms-topic').value = ''; document.getElementById('lms-url').value = ''; document.getElementById('lms-status').value = 'active'; document.getElementById('lms-auto-close').value = ''; document.getElementById('lms-auto-open').value = ''; document.getElementById('btn-save-lms').innerHTML = '<i class="fa-solid fa-plus-circle mr-2 text-lg"></i> Simpan ke Database'; }
+
+        function saveData() {
+            localStorage.setItem('examConfig', JSON.stringify(CONFIG));
+        }
+
+        function resetToDefault() {
+            if(confirm("AWAS! Ini akan menghapus SEMUA pengaturan dan daftar ujian yang telah Anda simpan. Lanjutkan?")) {
+                localStorage.removeItem('examConfig');
+                location.reload(); 
+            }
+        }
+
+        // ================= CORE EXAM & ANTI-CHEAT =================
+
+        function formatTime(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = seconds % 60;
+            return [h, m, s].map(v => v < 10 ? "0" + v : v).join(":");
+        }
+
+        function endExam(title, message) {
+            clearInterval(timerInterval);
+            isExamActive = false;
+
+            if (document.exitFullscreen && document.fullscreenElement) {
+                document.exitFullscreen().catch(e => {});
+            }
+
+            document.getElementById('gform-iframe').src = "";
+            document.getElementById('exam-screen').classList.add('hidden');
+            document.getElementById('exam-screen').classList.remove('flex');
+            document.getElementById('finish-screen').classList.remove('hidden');
+            
+            document.getElementById('fs-title').textContent = title;
+            document.getElementById('fs-message').textContent = message || CONFIG.finishMessage;
+            
+            const fsCard = document.querySelector('#finish-screen > div');
+            if (CONFIG.strictMode && violations > 0 && violations >= CONFIG.maxViolations) {
+                fsCard.classList.remove('border-green-500');
+                fsCard.classList.add('border-red-500');
+                fsCard.querySelector('i').classList.remove('fa-check', 'text-green-500');
+                fsCard.querySelector('i').classList.add('fa-times', 'text-red-500');
+                fsCard.querySelector('.bg-green-100').classList.replace('bg-green-100', 'bg-red-100');
+            } else {
+                fsCard.classList.remove('border-red-500');
+                fsCard.classList.add('border-green-500');
+                fsCard.querySelector('i').classList.add('fa-check', 'text-green-500');
+                fsCard.querySelector('i').classList.remove('fa-times', 'text-red-500');
+                fsCard.querySelector('div').classList.add('bg-green-100');
+                fsCard.querySelector('div').classList.remove('bg-red-100');
+            }
+        }
+
+        document.addEventListener('visibilitychange', () => {
+            if (CONFIG.strictMode && document.hidden && isExamActive) {
+                violations++;
+                document.getElementById('violation-badge').classList.remove('hidden');
+                document.getElementById('violation-count').textContent = violations;
+                
+                if (CONFIG.maxViolations === 0 || violations >= CONFIG.maxViolations) {
+                    endExam("Ujian Dihentikan", "Anda telah melanggar aturan dengan berpindah tab/aplikasi.");
+                } else {
+                    alert(`PERINGATAN KECURANGAN!\n\nAnda terdeteksi berpindah tab atau aplikasi.\nIni peringatan ke-${violations} dari batas ${CONFIG.maxViolations}.\nJika melewati batas, ujian otomatis ditutup!`);
+                }
+            }
+        });
+
+        document.addEventListener('contextmenu', event => event.preventDefault());
+
+        document.onkeydown = function(e) {
+            if(e.keyCode == 123) return false; 
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false; 
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false; 
+            if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false; 
+        }
     </script>
 </body>
 </html>
