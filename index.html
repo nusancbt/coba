@@ -1242,7 +1242,7 @@
                 renderTaskList();
             }
             else {
-                const menuItem = menus.find(m => m.id === viewId);
+                const menuItem = menus.find(m => String(m.id) === String(viewId));
                 if (menuItem) {
                     let cleanTitle = menuItem.title;
                     if(menuItem.title.includes(':')) cleanTitle = menuItem.title.split(':')[1].trim();
@@ -1664,7 +1664,7 @@
                 const parts = menu.title.includes(':') ? menu.title.split(':') : ['Umum', menu.title];
                 const statusObj = getMenuTimeStatus(menu);
                 let statusColor = statusObj.isActive ? 'text-green-600 bg-green-50 dark:bg-green-900/30 dark:text-green-400' : 'text-gray-500 bg-gray-100 dark:bg-gray-700 dark:text-gray-300';
-                list.innerHTML += `<div class="p-4 flex justify-between items-center hover:bg-white dark:hover:bg-slate-800 transition-colors gap-3"><div class="flex items-start gap-3 w-full"><div class="w-10 h-10 rounded-lg bg-${menu.color}-100 dark:bg-${menu.color}-900/30 flex items-center justify-center text-${menu.color}-600 dark:text-${menu.color}-400 flex-shrink-0 mt-1"><i class="fa-solid ${menu.icon}"></i></div><div class="min-w-0"><div class="flex items-center gap-2 mb-0.5"><span class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-gray-200 dark:bg-slate-700 text-gray-600 dark:text-gray-300">${parts[0].trim()}</span><span class="text-[10px] px-1.5 py-0.5 rounded ${statusColor}">${statusObj.label}</span></div><h4 class="font-bold text-gray-800 dark:text-gray-200 text-sm truncate">${parts.slice(1).join(':').trim()}</h4><p class="text-xs text-gray-400 dark:text-gray-500 truncate max-w-[200px]">${menu.url}</p></div></div><div class="flex gap-2"><button onclick="editLMS('${menu.id}')" class="px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-500 rounded-lg text-xs font-medium border border-yellow-200 dark:border-yellow-800/50">Edit</button><button onclick="deleteMenu('${menu.id}')" class="px-3 py-1.5 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-500 rounded-lg text-xs font-medium border border-red-200 dark:border-red-800/50">Hapus</button></div></div>`;
+                list.innerHTML += `<div class="p-4 flex justify-between items-center hover:bg-white dark:hover:bg-slate-800 transition-colors gap-3 border-b dark:border-slate-700"><div class="flex items-start gap-3 w-full"><div class="w-10 h-10 rounded-lg bg-${menu.color}-100 dark:bg-${menu.color}-900/30 flex items-center justify-center text-${menu.color}-600 dark:text-${menu.color}-400 flex-shrink-0 mt-1"><i class="fa-solid ${menu.icon}"></i></div><div class="min-w-0"><div class="flex items-center gap-2 mb-0.5"><span class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-gray-200 dark:bg-slate-700 text-gray-600 dark:text-gray-300">${parts[0].trim()}</span><span class="text-[10px] px-1.5 py-0.5 rounded ${statusColor}">${statusObj.label}</span></div><h4 class="font-bold text-gray-800 dark:text-gray-200 text-sm truncate">${parts.slice(1).join(':').trim()}</h4><p class="text-xs text-gray-400 dark:text-gray-500 truncate max-w-[200px]">${menu.url}</p></div></div><div class="flex gap-2"><button onclick="editLMS('${menu.id}')" class="px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-500 rounded-lg text-xs font-medium border border-yellow-200 dark:border-yellow-800/50">Edit</button><button onclick="deleteMenu('${menu.id}')" class="px-3 py-1.5 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-500 rounded-lg text-xs font-medium border border-red-200 dark:border-red-800/50">Hapus</button></div></div>`;
             });
         }
 
@@ -1674,21 +1674,22 @@
             basicMenus.forEach(menu => {
                 const statusObj = getMenuTimeStatus(menu);
                 let statusBadge = statusObj.isActive ? '<span class="px-2 py-1 text-xs rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 font-bold">Aktif</span>' : '<span class="px-2 py-1 text-xs rounded-full bg-gray-200 dark:bg-slate-700 text-gray-600 dark:text-gray-300">Non-Aktif</span>';
-                list.innerHTML += `<div class="p-4 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-slate-700 gap-4 transition-colors"><div class="flex items-center gap-4 w-full"><div class="w-10 h-10 rounded bg-gray-100 dark:bg-slate-700 flex items-center justify-center text-gray-600 dark:text-gray-300 flex-shrink-0"><i class="fa-solid ${menu.icon}"></i></div><div class="min-w-0"><h4 class="font-bold text-gray-800 dark:text-white truncate">${menu.title}</h4>${statusBadge}</div></div><div class="flex gap-2 shrink-0"><button onclick="editMenu('${menu.id}')" class="px-3 py-1.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400 rounded text-sm font-medium">Edit</button><button onclick="deleteMenu('${menu.id}')" class="px-3 py-1.5 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 rounded text-sm font-medium">Hapus</button></div></div>`;
+                list.innerHTML += `<div class="p-4 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-slate-800 gap-4 transition-colors border-b dark:border-slate-700"><div class="flex items-center gap-4 w-full"><div class="w-10 h-10 rounded bg-gray-100 dark:bg-slate-700 flex items-center justify-center text-gray-600 dark:text-gray-300 flex-shrink-0"><i class="fa-solid ${menu.icon}"></i></div><div class="min-w-0"><h4 class="font-bold text-gray-800 dark:text-white truncate">${menu.title}</h4>${statusBadge}</div></div><div class="flex gap-2 shrink-0"><button onclick="editMenu('${menu.id}')" class="px-3 py-1.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400 rounded text-sm font-medium">Edit</button><button onclick="deleteMenu('${menu.id}')" class="px-3 py-1.5 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 rounded text-sm font-medium">Hapus</button></div></div>`;
             });
         }
+
         function renderAnnouncementSettingsList() {
             const list = document.getElementById('settings-ann-list'); list.innerHTML = '';
             announcements.forEach(item => { list.innerHTML += `<div class="p-4 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"><div class="mb-2 md:mb-0 w-full"><div class="flex items-center gap-2 mb-1"><span class="px-2 py-0.5 rounded text-xs font-bold uppercase bg-gray-200 dark:bg-slate-600 text-gray-700 dark:text-gray-300">${item.type}</span><h4 class="font-bold text-gray-800 dark:text-white">${item.title}</h4></div><p class="text-sm text-gray-600 dark:text-gray-400 truncate max-w-xs">${item.content}</p></div><div class="flex gap-2"><button onclick="editAnnouncement(${item.id})" class="text-yellow-600 dark:text-yellow-400 p-2"><i class="fa-solid fa-pen"></i></button><button onclick="deleteAnnouncement(${item.id})" class="text-red-600 dark:text-red-400 p-2"><i class="fa-solid fa-trash"></i></button></div></div>`; });
         }
 
         function editMenu(id) {
-            const item = menus.find(m => m.id === id);
+            const item = menus.find(m => String(m.id) === String(id));
             if(item) { switchSettingsTab('menu'); document.getElementById('menu-edit-id').value = item.id; document.getElementById('menu-title').value = item.title; document.getElementById('menu-url').value = item.url; document.getElementById('menu-icon').value = item.icon; document.getElementById('menu-color').value = item.color; document.getElementById('menu-status').value = item.status; document.getElementById('menu-auto-close').value = item.auto_close; document.getElementById('menu-auto-open').value = item.auto_open; document.getElementById('btn-save-menu').innerHTML = 'Update Menu'; }
         }
         
         function editLMS(id) {
-            const item = menus.find(m => m.id === id);
+            const item = menus.find(m => String(m.id) === String(id));
             if(item) {
                 switchSettingsTab('lms'); document.getElementById('lms-edit-id').value = item.id;
                 let mapel = "Umum", topic = item.title;
@@ -1699,18 +1700,6 @@
             }
         }
 
-        function editAnnouncement(id) { 
-            const item = announcements.find(a => a.id == id); 
-            if(item) { 
-                document.getElementById('ann-edit-id').value = item.id; 
-                document.getElementById('ann-title').value = item.title; 
-                document.getElementById('ann-content').value = item.content; 
-                document.getElementById('ann-type').value = item.type; 
-                // Simpan waktu asli di hidden input agar tidak hilang saat update
-                document.getElementById('ann-time').value = item.time; 
-                document.getElementById('btn-save-ann').innerHTML = 'Update Pengumuman'; 
-            } 
-        }
         function resetMenuForm() { document.getElementById('menu-edit-id').value = ''; document.getElementById('menu-title').value = ''; document.getElementById('menu-url').value = ''; document.getElementById('menu-status').value = 'active'; document.getElementById('menu-auto-close').value = ''; document.getElementById('menu-auto-open').value = ''; document.getElementById('btn-save-menu').innerHTML = '<i class="fa-solid fa-plus mr-2"></i> Simpan ke Database'; }
         function resetLMSForm() { document.getElementById('lms-edit-id').value = ''; document.getElementById('lms-subject').value = ''; document.getElementById('lms-topic').value = ''; document.getElementById('lms-url').value = ''; document.getElementById('lms-status').value = 'active'; document.getElementById('lms-auto-close').value = ''; document.getElementById('lms-auto-open').value = ''; document.getElementById('btn-save-lms').innerHTML = '<i class="fa-solid fa-plus-circle mr-2 text-lg"></i> Simpan Materi ke Database'; }
 
@@ -1800,7 +1789,7 @@
         }
 
         function openExam(id) {
-            const exam = exams.find(e => e.id === id);
+            const exam = exams.find(e => String(e.id) === String(id));
             if(!exam) return;
 
             if(!isValidUrl(exam.url)) {
@@ -1919,7 +1908,7 @@
         }
 
         function editExam(id) {
-            const item = exams.find(e => e.id === id);
+            const item = exams.find(e => String(e.id) === String(id));
             if(item) {
                 document.getElementById('cbt-edit-id').value = item.id;
                 document.getElementById('cbt-subject').value = item.subject || '';
